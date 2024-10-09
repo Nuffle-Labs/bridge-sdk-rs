@@ -424,6 +424,41 @@ impl OmniConnector {
         Ok(outcome)
     }
 
+    /// Signs claiming native fee on NEAR chain using the token locker
+    #[tracing::instrument(skip_all, name = "SIGN NATIVE CLAIM FEE")]
+    pub async fn sign_claim_native_fee(
+        &self,
+        nonces: Vec<u128>,
+        recipient: OmniAddress,
+    ) -> Result<FinalExecutionOutcomeView> {
+        let near_endpoint = self.near_endpoint()?;
+        let token_locker_id = self.token_locker_id()?;
+
+        let outcome = near_rpc_client::change_and_wait_for_outcome(
+            near_endpoint,
+            self.near_signer()?,
+            token_locker_id.to_string(),
+            "sign_claim_native_fee".to_string(),
+            json!({
+                "nonces": nonces.iter().map(ToString::to_string).collect::<Vec<_>>(),
+                "recipient": recipient
+            })
+            .to_string()
+            .into_bytes()
+            .into(),
+            300_000_000_000_000,
+            500_000_000_000_000_000_000_000,
+        )
+        .await?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", outcome.transaction.hash),
+            "Sent claim native fee request"
+        );
+
+        Ok(outcome)
+    }
+
     /// Claims fee on Ethereum chain
     #[tracing::instrument(skip_all, name = "EVM CLAIM NATIVE FEE")]
     pub async fn evm_claim_native_fee(
