@@ -14,16 +14,7 @@ use std::sync::Arc;
 
 pub async fn get_proof_for_event(
     tx_hash: H256,
-    log_index: u64,
-    node_url: &str,
-) -> Result<EvmProof, EthProofError> {
-    get_proof_for_event_with_log_index(tx_hash, Some(log_index), None, node_url).await
-}
-
-pub async fn get_proof_for_event_with_log_index(
-    tx_hash: H256,
-    log_index: Option<u64>,
-    log_index_in_receipt: Option<usize>,
+    topic: H256,
     node_url: &str,
 ) -> Result<EvmProof, EthProofError> {
     let client = EthRPCClient::new(node_url);
@@ -38,24 +29,14 @@ pub async fn get_proof_for_event_with_log_index(
     let receipt_key = rlp::encode(&receipt.transaction_index);
     let proof = trie.get_proof(&receipt_key)?;
 
-    let (log_data, log_index_in_receipt) = if let Some(log_index) = log_index {
-        let mut log_data: Option<Vec<u8>> = None;
-        let mut log_index_in_receipt = 0;
-        for (i, log) in receipt.logs.iter().enumerate() {
-            if log.log_index == log_index.into() {
-                log_data = Some(encode_log(log));
-                log_index_in_receipt = i;
-            }
+    let mut log_data: Option<Vec<u8>> = None;
+    let mut log_index_in_receipt = 0;
+    for (i, log) in receipt.logs.iter().enumerate() {
+        if log.topics[0] == topic {
+            log_data = Some(encode_log(log));
+            log_index_in_receipt = i;
         }
-        (log_data, log_index_in_receipt)
-    } else {
-        let log_index_in_receipt = log_index_in_receipt
-            .ok_or(EthProofError::Other("No Log index is provided".to_string()))?;
-        (
-            Some(encode_log(&receipt.logs[log_index_in_receipt])),
-            log_index_in_receipt,
-        )
-    };
+    }
 
     Ok(EvmProof {
         log_index: log_index_in_receipt as u64,
@@ -192,7 +173,12 @@ pub mod tests {
         let tx_hash =
             H256::from_str("0xc4a6c5cde1d243b26b013f805f71f6de91536f66c993abfee746f373203b68cc")
                 .unwrap();
-        let proof = get_proof_for_event(tx_hash, 251, RPC_URL).await.unwrap();
+        let event_topic =
+            H256::from_str("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                .unwrap();
+        let proof = get_proof_for_event(tx_hash, event_topic, RPC_URL)
+            .await
+            .unwrap();
         verify_proof(proof, "pre_shapella_proof.json");
     }
 
@@ -201,7 +187,12 @@ pub mod tests {
         let tx_hash =
             H256::from_str("0xd6ae351d6946f98c4b63589e2154db668e703e8c09fbd4e5c6807b5d356453c3")
                 .unwrap();
-        let proof = get_proof_for_event(tx_hash, 172, RPC_URL).await.unwrap();
+        let event_topic =
+            H256::from_str("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                .unwrap();
+        let proof = get_proof_for_event(tx_hash, event_topic, RPC_URL)
+            .await
+            .unwrap();
         verify_proof(proof, "post_shapella_proof.json");
     }
 
@@ -210,7 +201,12 @@ pub mod tests {
         let tx_hash =
             H256::from_str("0x42639810a1238a76ca947b848f5b88a854ac36471d1c4f6a15631393790f89af")
                 .unwrap();
-        let proof = get_proof_for_event(tx_hash, 360, RPC_URL).await.unwrap();
+        let event_topic =
+            H256::from_str("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                .unwrap();
+        let proof = get_proof_for_event(tx_hash, event_topic, RPC_URL)
+            .await
+            .unwrap();
         verify_proof(proof, "post_dencun_proof.json");
     }
 

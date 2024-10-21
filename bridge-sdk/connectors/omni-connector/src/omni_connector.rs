@@ -367,7 +367,7 @@ impl OmniConnector {
         &self,
         origin_nonce: u128,
         fee_recepient: Option<AccountId>,
-        fee: u128,
+        fee: Option<Fee>,
     ) -> Result<FinalExecutionOutcomeView> {
         let near_endpoint = self.near_endpoint()?;
 
@@ -379,10 +379,7 @@ impl OmniConnector {
             serde_json::json!({
                 "nonce": origin_nonce.to_string(),
                 "fee_recepient": fee_recepient,
-                "fee": Fee {
-                    fee: fee.into(),
-                    native_fee: 0.into()
-                }
+                "fee": fee,
             }),
             300_000_000_000_000,
             500_000_000_000_000_000_000_000,
@@ -426,20 +423,15 @@ impl OmniConnector {
         Ok(outcome)
     }
 
-    pub async fn bind_token_eth_evm_prover(
-        &self,
-        tx_hash: TxHash,
-        log_index: Option<u64>,
-        log_index_in_receipt: Option<usize>,
-    ) -> Result<CryptoHash> {
+    pub async fn bind_token_with_evm_prover(&self, tx_hash: TxHash) -> Result<CryptoHash> {
         let eth_endpoint = self.eth_endpoint()?;
-        let proof = eth_proof::get_proof_for_event_with_log_index(
-            tx_hash,
-            log_index,
-            log_index_in_receipt,
-            eth_endpoint,
-        )
-        .await?;
+
+        // keccak(DeployToken(address,string,string,string,uint8))
+        let event_topic =
+            H256::from_str("0x47f94ffff8bf287abb76c2b671306c7cb14769c4652a1d2fa447722e82107719")
+                .map_err(|_| BridgeSdkError::UnknownError)?;
+
+        let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
 
         let evm_verify_proof_args = EvmVerifyProofArgs {
             proof_kind: ProofKind::DeployToken,
@@ -484,6 +476,41 @@ impl OmniConnector {
         );
 
         Ok(tx_id)
+    }
+
+    /// Signs claiming native fee on NEAR chain using the token locker
+    #[tracing::instrument(skip_all, name = "SIGN NATIVE CLAIM FEE")]
+    pub async fn sign_claim_native_fee(
+        &self,
+        nonces: Vec<u128>,
+        recipient: OmniAddress,
+    ) -> Result<FinalExecutionOutcomeView> {
+        let near_endpoint = self.near_endpoint()?;
+        let token_locker_id = self.token_locker_id()?;
+
+        let outcome = near_rpc_client::change_and_wait_for_outcome(
+            near_endpoint,
+            self.near_signer()?,
+            token_locker_id.to_string(),
+            "sign_claim_native_fee".to_string(),
+            json!({
+                "nonces": nonces.iter().map(ToString::to_string).collect::<Vec<_>>(),
+                "recipient": recipient
+            })
+            .to_string()
+            .into_bytes()
+            .into(),
+            300_000_000_000_000,
+            500_000_000_000_000_000_000_000,
+        )
+        .await?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", outcome.transaction.hash),
+            "Sent claim native fee request"
+        );
+
+        Ok(outcome)
     }
 
     /// Claims fee on Ethereum chain
