@@ -17,6 +17,7 @@ use omni_types::{
     ChainKind, Fee, OmniAddress,
 };
 use serde_json::json;
+use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 
 abigen!(
@@ -426,10 +427,10 @@ impl OmniConnector {
     pub async fn bind_token_with_evm_prover(&self, tx_hash: TxHash) -> Result<CryptoHash> {
         let eth_endpoint = self.eth_endpoint()?;
 
-        // keccak(DeployToken(address,string,string,string,uint8))
-        let event_topic =
-            H256::from_str("0x47f94ffff8bf287abb76c2b671306c7cb14769c4652a1d2fa447722e82107719")
-                .map_err(|_| BridgeSdkError::UnknownError)?;
+        let event_topic = H256::from_str(&hex::encode(Keccak256::digest(
+            "DeployToken(address,string,string,string,uint8)".as_bytes(),
+        )))
+        .map_err(|_| BridgeSdkError::UnknownError)?;
 
         let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
 
