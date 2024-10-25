@@ -4,4 +4,6 @@ use solana_client::client_error::ClientError;
 pub enum SolanaClientError {
     #[error("Solana RPC error: {0}")]
     RpcError(#[from] ClientError),
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
 }

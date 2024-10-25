@@ -1049,6 +1049,7 @@ dependencies = [
  "omni-connector",
  "serde",
  "serde_json",
+ "solana-connector",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -7201,6 +7202,19 @@ dependencies = [
  "solana-sdk",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "solana-connector"
+version = "0.1.0"
+dependencies = [
+ "derive_builder",
+ "near-primitives",
+ "near-rpc-client",
+ "omni-types",
+ "serde_json",
+ "solana-bridge-client",
+ "solana-sdk",
 ]
 
 [[package]]
