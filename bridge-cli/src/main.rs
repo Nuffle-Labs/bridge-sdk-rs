@@ -35,6 +35,8 @@ struct CliConfig {
     #[arg(long)]
     solana_bridge_address: Option<String>,
     #[arg(long)]
+    solana_wormhole_address: Option<String>,
+    #[arg(long)]
     solana_keypair: Option<String>,
     #[arg(long)]
     token_locker_id: Option<String>,
@@ -65,6 +67,9 @@ impl CliConfig {
             eth_private_key: self.eth_private_key.or(other.eth_private_key),
             solana_rpc: self.solana_rpc.or(other.solana_rpc),
             solana_bridge_address: self.solana_bridge_address.or(other.solana_bridge_address),
+            solana_wormhole_address: self
+                .solana_wormhole_address
+                .or(other.solana_wormhole_address),
             token_locker_id: self.token_locker_id.or(other.token_locker_id),
             bridge_token_factory_address: self
                 .bridge_token_factory_address
@@ -96,6 +101,7 @@ fn env_config() -> CliConfig {
         eth_private_key: env::var("ETH_PRIVATE_KEY").ok(),
         solana_rpc: env::var("SOLANA_RPC").ok(),
         solana_bridge_address: env::var("SOLANA_BRIDGE_ADDRESS").ok(),
+        solana_wormhole_address: env::var("SOLANA_WORMHOLE_ADDRESS").ok(),
         token_locker_id: env::var("TOKEN_LOCKER_ID").ok(),
         bridge_token_factory_address: env::var("BRIDGE_TOKEN_FACTORY_ADDRESS").ok(),
         near_light_client_eth_address: env::var("NEAR_LIGHT_CLIENT_ADDRESS").ok(),
@@ -116,6 +122,7 @@ fn default_config(network: Network) -> CliConfig {
             near_rpc: Some(defaults::NEAR_RPC_MAINNET.to_owned()),
             solana_rpc: Some(defaults::SOLANA_RPC_MAINNET.to_owned()),
             solana_bridge_address: Some(defaults::SOLANA_BRIDGE_ADDRESS_MAINNET.to_owned()),
+            solana_wormhole_address: Some(defaults::SOLANA_WORMHOLE_ADDRESS_MAINNET.to_owned()),
             near_signer: None,
             near_private_key: None,
             eth_private_key: None,
@@ -139,6 +146,7 @@ fn default_config(network: Network) -> CliConfig {
             near_rpc: Some(defaults::NEAR_RPC_TESTNET.to_owned()),
             solana_rpc: Some(defaults::SOLANA_RPC_TESTNET.to_owned()),
             solana_bridge_address: Some(defaults::SOLANA_BRIDGE_ADDRESS_TESTNET.to_owned()),
+            solana_wormhole_address: Some(defaults::SOLANA_WORMHOLE_ADDRESS_TESTNET.to_owned()),
             near_signer: None,
             near_private_key: None,
             eth_private_key: None,

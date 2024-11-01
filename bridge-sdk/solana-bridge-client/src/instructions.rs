@@ -1,6 +1,6 @@
+use crate::DeployTokenData;
 use borsh::BorshSerialize;
 use solana_sdk::pubkey::Pubkey;
-use crate::DeployTokenData;
 
 pub struct Initialize {
     pub admin: Pubkey,
@@ -10,7 +10,7 @@ pub struct Initialize {
 impl BorshSerialize for Initialize {
     fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
         // TODO: Calculate discriminators based on instruction name
-        writer.write_all(&[175, 175, 109, 31, 13, 152, 155, 237])?; 
+        writer.write_all(&[175, 175, 109, 31, 13, 152, 155, 237])?;
         writer.write_all(&self.admin.to_bytes())?;
         writer.write_all(&self.derived_near_bridge_address)?;
         Ok(())

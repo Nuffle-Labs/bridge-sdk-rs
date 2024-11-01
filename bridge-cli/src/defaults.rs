@@ -12,6 +12,7 @@ pub const FAST_BRIDGE_ACCOUNT_ID_MAINNET: &str = "fast.bridge.near";
 pub const FAST_BRIDGE_ADDRESS_MAINNET: &str = "0xC5E985976d9b521904AD96306356ECA0fE4F3a1f";
 pub const SOLANA_RPC_MAINNET: &str = "https://api.mainnet-beta.solana.com";
 pub const SOLANA_BRIDGE_ADDRESS_MAINNET: &str = "";
+pub const SOLANA_WORMHOLE_ADDRESS_MAINNET: &str = "";
 
 /// Testnet
 pub const NEAR_RPC_TESTNET: &str = "https://rpc.testnet.near.org/";
@@ -27,3 +28,4 @@ pub const FAST_BRIDGE_ACCOUNT_ID_TESTNET: &str = "fastbridge.testnet";
 pub const FAST_BRIDGE_ADDRESS_TESTNET: &str = "0x0B2C4871C9bAD795746C05c1539A8B1f26c26357";
 pub const SOLANA_RPC_TESTNET: &str = "https://api.devnet.solana.com";
 pub const SOLANA_BRIDGE_ADDRESS_TESTNET: &str = "";
+pub const SOLANA_WORMHOLE_ADDRESS_TESTNET: &str = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5";

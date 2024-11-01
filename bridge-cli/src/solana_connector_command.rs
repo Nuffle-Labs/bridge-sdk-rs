@@ -46,9 +46,16 @@ pub enum SolanaConnectorSubCommand {
 pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) {
     match cmd {
         SolanaConnectorSubCommand::Initialize { config_cli } => {
-            solana_connector(network, config_cli).initialize().await.unwrap();
+            solana_connector(network, config_cli)
+                .initialize()
+                .await
+                .unwrap();
         }
-        SolanaConnectorSubCommand::DeployToken { transaction_hash, sender_id, config_cli } => {
+        SolanaConnectorSubCommand::DeployToken {
+            transaction_hash,
+            sender_id,
+            config_cli,
+        } => {
             solana_connector(network, config_cli)
                 .deploy_token(
                     transaction_hash.parse().unwrap(),
@@ -57,7 +64,11 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
                 .await
                 .unwrap();
         }
-        SolanaConnectorSubCommand::FinalizeTransfer { transaction_hash, sender_id, config_cli } => {
+        SolanaConnectorSubCommand::FinalizeTransfer {
+            transaction_hash,
+            sender_id,
+            config_cli,
+        } => {
             solana_connector(network, config_cli)
                 .finalize_transfer(
                     transaction_hash.parse().unwrap(),
@@ -72,7 +83,12 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
                 .await
                 .unwrap();
         }
-        SolanaConnectorSubCommand::InitTransferNative { token, amount, recipient, config_cli } => {
+        SolanaConnectorSubCommand::InitTransferNative {
+            token,
+            amount,
+            recipient,
+            config_cli,
+        } => {
             solana_connector(network, config_cli)
                 .init_transfer_native(token.parse().unwrap(), amount, recipient)
                 .await
@@ -81,13 +97,13 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
     }
 }
 
-
 fn solana_connector(network: Network, cli_config: CliConfig) -> SolanaConnector {
     let combined_config = combined_config(cli_config, network);
 
     SolanaConnectorBuilder::default()
         .solana_endpoint(combined_config.solana_rpc)
         .solana_bridge_address(combined_config.solana_bridge_address)
+        .solana_wormhole_address(combined_config.solana_wormhole_address)
         .near_endpoint(combined_config.near_rpc)
         .near_signer(combined_config.near_signer)
         .solana_keypair(combined_config.solana_keypair)
