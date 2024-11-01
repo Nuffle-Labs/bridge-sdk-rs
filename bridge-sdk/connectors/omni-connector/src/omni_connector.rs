@@ -1,4 +1,3 @@
-use borsh::BorshSerialize;
 use bridge_connector_common::result::{BridgeSdkError, Result};
 use ethers::{abi::Address, prelude::*};
 use near_contract_standards::storage_management::StorageBalance;
@@ -336,16 +335,12 @@ impl OmniConnector {
     pub async fn near_fin_transfer(&self, args: FinTransferArgs) -> Result<CryptoHash> {
         let near_endpoint = self.near_endpoint()?;
 
-        let mut serialized_args = Vec::new();
-        args.serialize(&mut serialized_args)
-            .map_err(|_| BridgeSdkError::UnknownError)?;
-
         let tx_hash = near_rpc_client::change(
             near_endpoint,
             self.near_signer()?,
             self.token_locker_id()?.to_string(),
             "fin_transfer".to_string(),
-            serialized_args,
+            borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
             300_000_000_000_000,
             60_000_000_000_000_000_000_000,
         )
@@ -365,7 +360,7 @@ impl OmniConnector {
         &self,
         origin_nonce: u128,
         fee_recepient: Option<AccountId>,
-        fee: u128,
+        fee: Option<Fee>,
     ) -> Result<FinalExecutionOutcomeView> {
         let near_endpoint = self.near_endpoint()?;
 
@@ -377,11 +372,10 @@ impl OmniConnector {
             serde_json::json!({
                 "nonce": origin_nonce.to_string(),
                 "fee_recepient": fee_recepient,
-                "fee": Fee {
-                    fee: fee.into(),
-                    native_fee: 0.into()
-                }
-            }),
+                "fee": fee,
+            })
+            .to_string()
+            .into_bytes(),
             300_000_000_000_000,
             500_000_000_000_000_000_000_000,
         )
@@ -401,16 +395,12 @@ impl OmniConnector {
         let near_endpoint = self.near_endpoint()?;
         let token_locker_id = self.token_locker_id()?;
 
-        let mut serialized_args = Vec::new();
-        args.serialize(&mut serialized_args)
-            .map_err(|_| BridgeSdkError::UnknownError)?;
-
         let outcome = near_rpc_client::change_and_wait_for_outcome(
             near_endpoint,
             self.near_signer()?,
             token_locker_id.to_string(),
             "claim_fee".to_string(),
-            serialized_args.into(),
+            borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
             300_000_000_000_000,
             200_000_000_000_000_000_000_000,
         )
@@ -419,6 +409,40 @@ impl OmniConnector {
         tracing::info!(
             tx_hash = format!("{:?}", outcome.transaction.hash),
             "Sent claim fee request"
+        );
+
+        Ok(outcome)
+    }
+
+    /// Signs claiming native fee on NEAR chain using the token locker
+    #[tracing::instrument(skip_all, name = "SIGN NATIVE CLAIM FEE")]
+    pub async fn sign_claim_native_fee(
+        &self,
+        nonces: Vec<u128>,
+        recipient: OmniAddress,
+    ) -> Result<FinalExecutionOutcomeView> {
+        let near_endpoint = self.near_endpoint()?;
+        let token_locker_id = self.token_locker_id()?;
+
+        let outcome = near_rpc_client::change_and_wait_for_outcome(
+            near_endpoint,
+            self.near_signer()?,
+            token_locker_id.to_string(),
+            "sign_claim_native_fee".to_string(),
+            json!({
+                "nonces": nonces.iter().map(ToString::to_string).collect::<Vec<_>>(),
+                "recipient": recipient
+            })
+            .to_string()
+            .into_bytes(),
+            300_000_000_000_000,
+            500_000_000_000_000_000_000_000,
+        )
+        .await?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", outcome.transaction.hash),
+            "Sent claim native fee request"
         );
 
         Ok(outcome)
@@ -494,7 +518,9 @@ impl OmniConnector {
             "storage_deposit".to_string(),
             json!({
                 "account_id": None::<AccountId>
-            }),
+            })
+            .to_string()
+            .into_bytes(),
             10_000_000_000_000,
             amount,
         )
