@@ -7215,6 +7215,7 @@ dependencies = [
  "serde_json",
  "solana-bridge-client",
  "solana-sdk",
+ "tracing",
 ]
 
 [[package]]

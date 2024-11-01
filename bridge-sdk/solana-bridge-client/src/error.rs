@@ -6,4 +6,6 @@ pub enum SolanaClientError {
     RpcError(#[from] ClientError),
     #[error("Configuration error: {0}")]
     ConfigError(String),
+    #[error("Invalid account data")]
+    InvalidAccountData(String),
 }

@@ -17,7 +17,7 @@ pub enum SolanaConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
-    FinalizeDeposit {
+    FinalizeTransfer {
         #[clap(short, long)]
         transaction_hash: String,
         #[clap(short, long)]
@@ -41,14 +41,14 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
                 .await
                 .unwrap();
         }
-        SolanaConnectorSubCommand::FinalizeDeposit { transaction_hash, sender_id, config_cli } => {
-/*             solana_connector(network, config_cli)
+        SolanaConnectorSubCommand::FinalizeTransfer { transaction_hash, sender_id, config_cli } => {
+            solana_connector(network, config_cli)
                 .finalize_transfer(
                     transaction_hash.parse().unwrap(),
                     sender_id.map(|id| id.parse().unwrap()),
                 )
                 .await
-                .unwrap(); */
+                .unwrap();
         }
     }
 }

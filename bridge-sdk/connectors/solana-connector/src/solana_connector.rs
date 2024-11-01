@@ -1,9 +1,8 @@
 use std::str::FromStr;
-
 use near_primitives::{hash::CryptoHash, types::AccountId};
 use omni_types::{near_events::Nep141LockerEvent, OmniAddress};
 use solana_bridge_client::{DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient};
-use solana_sdk::{pubkey::Pubkey, signature::Keypair};
+use solana_sdk::{pubkey::Pubkey, signature::{Keypair, Signature}};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -23,24 +22,31 @@ impl SolanaConnector {
         Self::default()
     }
 
-    pub async fn initialize(&self) -> Result<()> {
+    pub async fn initialize(&self) -> Result<Signature> {
         let solana_client = SolanaBridgeClient::new(
             self.solana_endpoint()?.to_string(),
             self.solana_bridge_address()?.parse()?,
             Pubkey::from_str("3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5")?,
         );
-        solana_client.initialize(
+        
+        let tx_id = solana_client.initialize(
             [19, 55, 243, 130, 164, 28, 152, 3, 170, 254, 187, 182, 135, 17, 208, 98, 216, 182, 238, 146, 2, 127, 83, 201, 149, 246, 138, 221, 29, 111, 186, 167, 150, 196, 102, 219, 89, 69, 115, 114, 185, 116, 6, 233, 154, 114, 222, 142, 167, 206, 157, 39, 177, 221, 224, 86, 146, 61, 226, 206, 55, 2, 119, 12],
             self.solana_keypair()?,
         )?;
 
-        Ok(())
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent initialize transaction"
+        );
+
+        Ok(tx_id)
     }
 
-    pub async fn deploy_token(&self, 
+    pub async fn deploy_token(
+        &self,
         transaction_hash: CryptoHash,
         sender_id: Option<AccountId>,
-    ) -> Result<()> {
+    ) -> Result<Signature> {
         let transfer_log = self
             .extract_transfer_log(transaction_hash, sender_id, "LogMetadataEvent")
             .await?;
@@ -60,7 +66,7 @@ impl SolanaConnector {
         };
         
         let mut signature = signature.to_bytes();
-        signature[64] -= 27; // Remove recovery_id modification in OmniTypes and add specifically when submitting to EVM chains
+        signature[64] -= 27; // TODO: Remove recovery_id modification in OmniTypes and add it specifically when submitting to EVM chains
 
         let payload = DeployTokenData {
             metadata: MetadataPayload {
@@ -72,9 +78,61 @@ impl SolanaConnector {
             signature: signature.try_into().map_err(|_| "Invalid signature")?,
         };
 
-        solana_client.deploy_token(payload, self.solana_keypair()?)?;
+        let tx_id = solana_client.deploy_token(payload, self.solana_keypair()?)?;
 
-        Ok(())
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent deploy token transaction"
+        );
+
+        Ok(tx_id)
+    }
+
+    pub async fn finalize_transfer(
+        &self,
+        transaction_hash: CryptoHash,
+        sender_id: Option<AccountId>,
+    ) -> Result<Signature> {
+        let transfer_log = self
+            .extract_transfer_log(transaction_hash, sender_id, "SignTransferEvent")
+            .await?;
+
+        let solana_client = SolanaBridgeClient::new(
+            self.solana_endpoint()?.to_string(),
+            self.solana_bridge_address()?.parse()?,
+            Pubkey::from_str("3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5")?,
+        );
+
+        let Nep141LockerEvent::SignTransferEvent {
+            message_payload,
+            signature,
+        } = serde_json::from_str(&transfer_log)?
+        else {
+            return Err("Unknown error".into());
+        };
+
+        let payload = FinalizeDepositData {
+            payload: DepositPayload {
+                nonce: message_payload.nonce.into(),
+                token: message_payload.token.to_string(),
+                amount: message_payload.amount.into(),
+                recipient: match message_payload.recipient {
+                    OmniAddress::Sol(addr) => Pubkey::from_str(&addr)?,
+                    _ => return Err("Invalid recipient".into()),
+                },
+                fee_recipient: message_payload.fee_recipient.map(|addr| addr.to_string()),
+            },
+            signature: signature.to_bytes().try_into().map_err(|_| "Invalid signature")?,
+        };
+
+        let tx_id = solana_client.finalize_transfer(payload, self.solana_keypair()?)?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent finalize transfer transaction"
+        );
+
+        Ok(tx_id)
     }
 
     async fn extract_transfer_log(
