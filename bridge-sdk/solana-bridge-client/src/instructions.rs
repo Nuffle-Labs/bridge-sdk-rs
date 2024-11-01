@@ -64,3 +64,17 @@ impl BorshSerialize for RegisterMint {
         Ok(())
     }
 }
+
+pub struct Send {
+    pub amount: u128,
+    pub recipient: String,
+}
+
+impl BorshSerialize for Send {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.write_all(&[102, 251, 20, 187, 65, 75, 12, 69])?;
+        self.amount.serialize(writer)?;
+        self.recipient.serialize(writer)?;
+        Ok(())
+    }
+}

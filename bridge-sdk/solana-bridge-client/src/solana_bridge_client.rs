@@ -302,6 +302,64 @@ impl SolanaBridgeClient {
         self.send_and_confirm_transaction(vec![instruction], payer)
     }
 
+    pub fn init_transfer_native(
+        &self,
+        token: Pubkey,
+        amount: u128,
+        recipient: String,
+        payer: Keypair,
+    ) -> Result<Signature, SolanaClientError> {
+        let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
+        let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
+
+        let (from_token_account, _) = Pubkey::find_program_address(
+            &[payer.pubkey().as_ref(), spl_token::ID.as_ref(), token.as_ref()],
+            &spl_associated_token_account::ID,
+        );
+        let (vault, _) = Pubkey::find_program_address(&[b"vault", token.as_ref()], &self.program_id);
+
+        let (wormhole_bridge, _) = Pubkey::find_program_address(&[b"Bridge"], &self.wormhole_core);
+        let (wormhole_fee_collector, _) = Pubkey::find_program_address(&[b"fee_collector"], &self.wormhole_core);
+        let (wormhole_sequence, _) = Pubkey::find_program_address(&[b"Sequence", config.as_ref()], &self.wormhole_core);
+        
+        let next_sequence = self.get_wormhole_sequence(wormhole_sequence)?;
+        let (wormhole_message, _) = Pubkey::find_program_address(
+            &[b"message", next_sequence.to_le_bytes().as_ref()],
+            &self.program_id,
+        );
+
+        let instruction_data = Send {
+            amount,
+            recipient,
+        };
+
+        let instruction = Instruction::new_with_borsh(
+            self.program_id,
+            &instruction_data,
+            vec![
+                AccountMeta::new_readonly(authority, false),
+                AccountMeta::new_readonly(token, false),
+                AccountMeta::new(from_token_account, false),
+                AccountMeta::new(vault, false),
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new_readonly(config, false),
+                AccountMeta::new(wormhole_bridge, false),
+                AccountMeta::new(wormhole_fee_collector, false),
+                AccountMeta::new(wormhole_sequence, false),
+                AccountMeta::new(wormhole_message, false),
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new_readonly(sysvar::clock::ID, false),
+                AccountMeta::new_readonly(sysvar::rent::ID, false),
+                AccountMeta::new_readonly(self.wormhole_core, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+                AccountMeta::new_readonly(spl_token::ID, false),
+            ],
+        );
+
+        self.send_and_confirm_transaction(vec![instruction], payer)
+    }
+
     fn get_wormhole_sequence(&self, wormhole_sequence: Pubkey) -> Result<u64, SolanaClientError> {
         let data = self.client.get_account_data(&wormhole_sequence)?;
         let sequence = WormholeSequence::try_from_slice(&data[..8]) // Sequence can have 8 or 10 bytes but we don't care about 9 and 10

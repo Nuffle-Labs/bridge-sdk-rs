@@ -31,6 +31,16 @@ pub enum SolanaConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    InitTransferNative {
+        #[clap(short, long)]
+        token: String,
+        #[clap(short, long)]
+        amount: u128,
+        #[clap(short, long)]
+        recipient: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
 }
 
 pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) {
@@ -59,6 +69,12 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
         SolanaConnectorSubCommand::RegisterToken { token, config_cli } => {
             solana_connector(network, config_cli)
                 .register_token(token.parse().unwrap())
+                .await
+                .unwrap();
+        }
+        SolanaConnectorSubCommand::InitTransferNative { token, amount, recipient, config_cli } => {
+            solana_connector(network, config_cli)
+                .init_transfer_native(token.parse().unwrap(), amount, recipient)
                 .await
                 .unwrap();
         }

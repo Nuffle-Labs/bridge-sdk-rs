@@ -152,6 +152,28 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
+    pub async fn init_transfer_native(
+        &self,
+        token: Pubkey,
+        amount: u128,
+        recipient: String,
+    ) -> Result<Signature> {
+        let solana_client = SolanaBridgeClient::new(
+            self.solana_endpoint()?.to_string(),
+            self.solana_bridge_address()?.parse()?,
+            Pubkey::from_str("3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5")?,
+        );
+
+        let tx_id = solana_client.init_transfer_native(token, amount, recipient, self.solana_keypair()?)?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent init transfer native transaction"
+        );
+
+        Ok(tx_id)
+    }
+
     async fn extract_transfer_log(
         &self,
         transaction_hash: CryptoHash,
