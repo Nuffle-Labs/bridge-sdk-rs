@@ -135,6 +135,23 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
+    pub async fn register_token(&self, token: Pubkey) -> Result<Signature> {
+        let solana_client = SolanaBridgeClient::new(
+            self.solana_endpoint()?.to_string(),
+            self.solana_bridge_address()?.parse()?,
+            Pubkey::from_str("3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5")?,
+        );
+
+        let tx_id = solana_client.register_token(token, self.solana_keypair()?)?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent register token transaction"
+        );
+
+        Ok(tx_id)
+    }
+
     async fn extract_transfer_log(
         &self,
         transaction_hash: CryptoHash,

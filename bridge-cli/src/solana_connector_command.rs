@@ -25,6 +25,12 @@ pub enum SolanaConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    RegisterToken {
+        #[clap(short, long)]
+        token: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
 }
 
 pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) {
@@ -47,6 +53,12 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
                     transaction_hash.parse().unwrap(),
                     sender_id.map(|id| id.parse().unwrap()),
                 )
+                .await
+                .unwrap();
+        }
+        SolanaConnectorSubCommand::RegisterToken { token, config_cli } => {
+            solana_connector(network, config_cli)
+                .register_token(token.parse().unwrap())
                 .await
                 .unwrap();
         }

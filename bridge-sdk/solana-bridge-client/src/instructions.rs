@@ -50,3 +50,17 @@ impl BorshSerialize for FinalizeDeposit {
         Ok(())
     }
 }
+
+pub struct RegisterMint {
+    pub override_name: String,
+    pub override_symbol: String,
+}
+
+impl BorshSerialize for RegisterMint {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.write_all(&[242, 43, 74, 162, 217, 214, 191, 171])?;
+        self.override_name.serialize(writer)?;
+        self.override_symbol.serialize(writer)?;
+        Ok(())
+    }
+}
