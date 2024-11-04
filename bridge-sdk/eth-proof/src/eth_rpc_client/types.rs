@@ -47,6 +47,7 @@ pub struct BlockHeader {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct Log {
     pub address: Address,
     pub topics: Vec<H256>,

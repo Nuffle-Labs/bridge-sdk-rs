@@ -1,5 +1,6 @@
 use crate::{combined_config, CliConfig, Network};
 use clap::Subcommand;
+use ethers_core::types::TxHash;
 use near_primitives::{hash::CryptoHash, types::AccountId};
 use omni_connector::{OmniConnector, OmniConnectorBuilder};
 use omni_types::Fee;
@@ -74,6 +75,12 @@ pub enum OmniConnectorSubCommand {
         fee: u128,
         #[clap(short, long)]
         native_fee: u128,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+    BindToken {
+        #[clap(short, long)]
+        tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -165,6 +172,15 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
         }
         OmniConnectorSubCommand::NearFinTransfer { .. } => {
             todo!()
+        }
+        OmniConnectorSubCommand::BindToken {
+            tx_hash,
+            config_cli,
+        } => {
+            omni_connector(network, config_cli)
+                .bind_token_with_evm_prover(TxHash::from_str(&tx_hash).expect("Invalid tx_hash"))
+                .await
+                .unwrap();
         }
     }
 }
