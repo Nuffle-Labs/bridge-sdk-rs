@@ -81,8 +81,6 @@ pub enum OmniConnectorSubCommand {
     BindToken {
         #[clap(short, long)]
         tx_hash: String,
-        #[clap(short, long)]
-        log_index: u64,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -177,15 +175,10 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
         }
         OmniConnectorSubCommand::BindToken {
             tx_hash,
-            log_index,
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .bind_token_eth_evm_prover(
-                    TxHash::from_str(&tx_hash).expect("Invalid tx_hash"),
-                    Some(log_index),
-                    None,
-                )
+                .bind_token_with_evm_prover(TxHash::from_str(&tx_hash).expect("Invalid tx_hash"))
                 .await
                 .unwrap();
         }
