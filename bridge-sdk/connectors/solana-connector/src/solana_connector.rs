@@ -172,6 +172,27 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
+    pub async fn init_transfer_bridged(
+        &self,
+        near_token_id: String,
+        amount: u128,
+        recipient: String,
+    ) -> Result<Signature> {
+        let tx_id = self.solana_client()?.init_transfer_bridged(
+            near_token_id,
+            amount,
+            recipient,
+            self.solana_keypair()?,
+        ).await?;
+
+        tracing::info!(
+            tx_hash = format!("{:?}", tx_id),
+            "Sent init transfer bridged transaction"
+        );
+
+        Ok(tx_id)
+    }
+
     async fn extract_transfer_log(
         &self,
         transaction_hash: CryptoHash,

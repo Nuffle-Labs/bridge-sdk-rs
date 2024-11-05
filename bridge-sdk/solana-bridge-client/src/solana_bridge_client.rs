@@ -320,6 +320,64 @@ impl SolanaBridgeClient {
 
         self.send_and_confirm_transaction(vec![instruction], payer).await
     }
+    
+    pub async fn init_transfer_bridged(
+        &self,
+        near_token_id: String,
+        amount: u128,
+        recipient: String,
+        payer: Keypair,
+    ) -> Result<Signature, SolanaClientError> {
+        let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
+        let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
+
+        let (mint, _) = Pubkey::find_program_address(
+            &[b"wrapped_mint", near_token_id.as_bytes()],
+            &self.program_id,
+        );
+
+        let (from_token_account, _) = Pubkey::find_program_address(
+            &[payer.pubkey().as_ref(), spl_token::ID.as_ref(), mint.as_ref()],
+            &spl_associated_token_account::ID,
+        );
+
+        let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence, wormhole_message)
+            = self.get_wormhole_accounts().await?;
+
+        let instruction_data = Repay {
+            token: near_token_id,
+            amount,
+            recipient,
+        };
+
+        let instruction = Instruction::new_with_borsh(
+            self.program_id,
+            &instruction_data,
+            vec![
+                AccountMeta::new_readonly(authority, false),
+                AccountMeta::new(mint, false),
+                AccountMeta::new(from_token_account, false),
+                AccountMeta::new_readonly(payer.pubkey(), true),
+                AccountMeta::new_readonly(config, false),
+                AccountMeta::new(wormhole_bridge, false),
+                AccountMeta::new(wormhole_fee_collector, false),
+                AccountMeta::new(wormhole_sequence, false),
+                AccountMeta::new(wormhole_message, false),
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new_readonly(sysvar::clock::ID, false),
+                AccountMeta::new_readonly(sysvar::rent::ID, false),
+                AccountMeta::new_readonly(self.wormhole_core, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+                AccountMeta::new_readonly(spl_token::ID, false),
+            ],
+        );
+
+        println!("instruction: {:?}", instruction);
+
+        self.send_and_confirm_transaction(vec![instruction], payer).await
+    }
+
 
     async fn get_wormhole_accounts(&self) -> Result<(Pubkey, Pubkey, Pubkey, Pubkey), SolanaClientError> {
         let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);

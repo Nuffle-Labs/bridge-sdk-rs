@@ -78,3 +78,19 @@ impl BorshSerialize for Send {
         Ok(())
     }
 }
+
+pub struct Repay {
+    pub token: String,
+    pub amount: u128,
+    pub recipient: String,
+}
+
+impl BorshSerialize for Repay {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.write_all(&[234, 103, 67, 82, 208, 234, 219, 166])?;
+        self.token.serialize(writer)?;
+        self.amount.serialize(writer)?;
+        self.recipient.serialize(writer)?;
+        Ok(())
+    }
+}

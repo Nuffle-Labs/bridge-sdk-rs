@@ -41,6 +41,16 @@ pub enum SolanaConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    InitTransferBridged {
+        #[clap(short, long)]
+        token: String,
+        #[clap(short, long)]
+        amount: u128,
+        #[clap(short, long)]
+        recipient: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
 }
 
 pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) {
@@ -91,6 +101,17 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
         } => {
             solana_connector(network, config_cli)
                 .init_transfer_native(token.parse().unwrap(), amount, recipient)
+                .await
+                .unwrap();
+        }
+        SolanaConnectorSubCommand::InitTransferBridged {
+            token,
+            amount,
+            recipient,
+            config_cli,
+        } => {
+            solana_connector(network, config_cli)
+                .init_transfer_bridged(token, amount, recipient)
                 .await
                 .unwrap();
         }
