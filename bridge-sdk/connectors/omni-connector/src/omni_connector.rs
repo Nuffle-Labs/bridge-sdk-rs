@@ -262,7 +262,9 @@ impl OmniConnector {
             token: message_payload.token.to_string(),
             amount: message_payload.amount.into(),
             recipient: match message_payload.recipient {
-                OmniAddress::Eth(addr) => H160(addr.0),
+                OmniAddress::Eth(addr) | OmniAddress::Base(addr) | OmniAddress::Arb(addr) => {
+                    H160(addr.0)
+                }
                 _ => return Err(BridgeSdkError::UnknownError),
             },
             fee_recipient: message_payload
@@ -539,7 +541,10 @@ impl OmniConnector {
             return Err(BridgeSdkError::UnknownError);
         };
 
-        let OmniAddress::Eth(recipient) = claim_payload.recipient else {
+        let (OmniAddress::Eth(recipient)
+        | OmniAddress::Base(recipient)
+        | OmniAddress::Arb(recipient)) = claim_payload.recipient
+        else {
             return Err(BridgeSdkError::UnknownError);
         };
 
