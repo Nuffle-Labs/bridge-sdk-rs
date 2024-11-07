@@ -1,5 +1,5 @@
-use bridge_connector_common::result::{BridgeSdkError, Result};
 use borsh::BorshSerialize;
+use bridge_connector_common::result::{BridgeSdkError, Result};
 use ethers::{abi::Address, prelude::*};
 use near_contract_standards::storage_management::StorageBalance;
 use near_crypto::SecretKey;
@@ -262,7 +262,9 @@ impl OmniConnector {
             token: message_payload.token.to_string(),
             amount: message_payload.amount.into(),
             recipient: match message_payload.recipient {
-                OmniAddress::Eth(addr) => H160(addr.0),
+                OmniAddress::Eth(addr) | OmniAddress::Base(addr) | OmniAddress::Arb(addr) => {
+                    H160(addr.0)
+                }
                 _ => return Err(BridgeSdkError::UnknownError),
             },
             fee_recipient: message_payload
@@ -363,7 +365,7 @@ impl OmniConnector {
     pub async fn sign_transfer(
         &self,
         origin_nonce: u128,
-        fee_recepient: Option<AccountId>,
+        fee_recipient: Option<AccountId>,
         fee: Option<Fee>,
     ) -> Result<FinalExecutionOutcomeView> {
         let near_endpoint = self.near_endpoint()?;
@@ -375,7 +377,7 @@ impl OmniConnector {
             "sign_transfer".to_string(),
             serde_json::json!({
                 "nonce": origin_nonce.to_string(),
-                "fee_recepient": fee_recepient,
+                "fee_recipient": fee_recipient,
                 "fee": fee,
             })
             .to_string()
@@ -534,7 +536,10 @@ impl OmniConnector {
             return Err(BridgeSdkError::UnknownError);
         };
 
-        let OmniAddress::Eth(recipient) = claim_payload.recipient else {
+        let (OmniAddress::Eth(recipient)
+        | OmniAddress::Base(recipient)
+        | OmniAddress::Arb(recipient)) = claim_payload.recipient
+        else {
             return Err(BridgeSdkError::UnknownError);
         };
 
