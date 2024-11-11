@@ -73,7 +73,7 @@ pub enum OmniConnectorSubCommand {
         nonce: u128,
         #[clap(short, long)]
         fee: u128,
-        #[clap(short, long)]
+        #[clap(long)]
         native_fee: u128,
         #[command(flatten)]
         config_cli: CliConfig,

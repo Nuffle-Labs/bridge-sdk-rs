@@ -435,14 +435,9 @@ impl OmniConnector {
             proof,
         };
 
-        let mut proof_args = Vec::new();
-        evm_verify_proof_args
-            .serialize(&mut proof_args)
-            .map_err(|_| BridgeSdkError::EthProofError("Failed to serialize proof".to_string()))?;
-
         self.bind_token(BindTokenArgs {
             chain_kind: ChainKind::Eth,
-            prover_args: proof_args,
+            prover_args: borsh::to_vec(&evm_verify_proof_args).map_err(|_| BridgeSdkError::EthProofError("Failed to serialize proof".to_string()))?,
         })
         .await
     }

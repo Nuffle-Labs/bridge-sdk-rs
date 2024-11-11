@@ -4,6 +4,7 @@ use fast_bridge_command::FastBridgeSubCommand;
 use nep141_connector_command::Nep141ConnectorSubCommand;
 use omni_connector_command::OmniConnectorSubCommand;
 use serde::Deserialize;
+use solana_connector_command::SolanaConnectorSubCommand;
 use std::{env, fs::File, io::BufReader};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{field::MakeExt, fmt::format, EnvFilter, FmtSubscriber};
@@ -13,6 +14,7 @@ mod eth_connector_command;
 mod fast_bridge_command;
 mod nep141_connector_command;
 mod omni_connector_command;
+mod solana_connector_command;
 
 #[derive(Args, Debug, Clone, Deserialize, Default)]
 struct CliConfig {
@@ -28,6 +30,14 @@ struct CliConfig {
     near_private_key: Option<String>,
     #[arg(long)]
     eth_private_key: Option<String>,
+    #[arg(long)]
+    solana_rpc: Option<String>,
+    #[arg(long)]
+    solana_bridge_address: Option<String>,
+    #[arg(long)]
+    solana_wormhole_address: Option<String>,
+    #[arg(long)]
+    solana_keypair: Option<String>,
     #[arg(long)]
     token_locker_id: Option<String>,
     #[arg(long)]
@@ -55,6 +65,11 @@ impl CliConfig {
             near_signer: self.near_signer.or(other.near_signer),
             near_private_key: self.near_private_key.or(other.near_private_key),
             eth_private_key: self.eth_private_key.or(other.eth_private_key),
+            solana_rpc: self.solana_rpc.or(other.solana_rpc),
+            solana_bridge_address: self.solana_bridge_address.or(other.solana_bridge_address),
+            solana_wormhole_address: self
+                .solana_wormhole_address
+                .or(other.solana_wormhole_address),
             token_locker_id: self.token_locker_id.or(other.token_locker_id),
             bridge_token_factory_address: self
                 .bridge_token_factory_address
@@ -68,6 +83,7 @@ impl CliConfig {
                 .or(other.eth_connector_account_id),
             fast_bridge_account_id: self.fast_bridge_account_id.or(other.fast_bridge_account_id),
             fast_bridge_address: self.fast_bridge_address.or(other.fast_bridge_address),
+            solana_keypair: self.solana_keypair.or(other.solana_keypair),
             config_file: self.config_file.or(other.config_file),
         }
     }
@@ -83,6 +99,9 @@ fn env_config() -> CliConfig {
         near_signer: env::var("NEAR_SIGNER").ok(),
         near_private_key: env::var("NEAR_PRIVATE_KEY").ok(),
         eth_private_key: env::var("ETH_PRIVATE_KEY").ok(),
+        solana_rpc: env::var("SOLANA_RPC").ok(),
+        solana_bridge_address: env::var("SOLANA_BRIDGE_ADDRESS").ok(),
+        solana_wormhole_address: env::var("SOLANA_WORMHOLE_ADDRESS").ok(),
         token_locker_id: env::var("TOKEN_LOCKER_ID").ok(),
         bridge_token_factory_address: env::var("BRIDGE_TOKEN_FACTORY_ADDRESS").ok(),
         near_light_client_eth_address: env::var("NEAR_LIGHT_CLIENT_ADDRESS").ok(),
@@ -90,6 +109,7 @@ fn env_config() -> CliConfig {
         eth_connector_account_id: env::var("ETH_CONNECTOR_ACCOUNT_ID").ok(),
         fast_bridge_account_id: env::var("FAST_BRIDGE_ACCOUNT_ID").ok(),
         fast_bridge_address: env::var("FAST_BRIDGE_ADDRESS").ok(),
+        solana_keypair: env::var("SOLANA_KEYPAIR").ok(),
         config_file: None,
     }
 }
@@ -100,6 +120,9 @@ fn default_config(network: Network) -> CliConfig {
             eth_rpc: Some(defaults::ETH_RPC_MAINNET.to_owned()),
             eth_chain_id: Some(defaults::ETH_CHAIN_ID_MAINNET),
             near_rpc: Some(defaults::NEAR_RPC_MAINNET.to_owned()),
+            solana_rpc: Some(defaults::SOLANA_RPC_MAINNET.to_owned()),
+            solana_bridge_address: Some(defaults::SOLANA_BRIDGE_ADDRESS_MAINNET.to_owned()),
+            solana_wormhole_address: Some(defaults::SOLANA_WORMHOLE_ADDRESS_MAINNET.to_owned()),
             near_signer: None,
             near_private_key: None,
             eth_private_key: None,
@@ -114,12 +137,16 @@ fn default_config(network: Network) -> CliConfig {
             eth_custodian_address: Some(defaults::ETH_CUSTODIAN_ADDRESS_MAINNET.to_owned()),
             fast_bridge_account_id: Some(defaults::FAST_BRIDGE_ACCOUNT_ID_MAINNET.to_owned()),
             fast_bridge_address: Some(defaults::FAST_BRIDGE_ADDRESS_MAINNET.to_owned()),
+            solana_keypair: None,
             config_file: None,
         },
         Network::Testnet => CliConfig {
             eth_rpc: Some(defaults::ETH_RPC_TESTNET.to_owned()),
             eth_chain_id: Some(defaults::ETH_CHAIN_ID_TESTNET),
             near_rpc: Some(defaults::NEAR_RPC_TESTNET.to_owned()),
+            solana_rpc: Some(defaults::SOLANA_RPC_TESTNET.to_owned()),
+            solana_bridge_address: Some(defaults::SOLANA_BRIDGE_ADDRESS_TESTNET.to_owned()),
+            solana_wormhole_address: Some(defaults::SOLANA_WORMHOLE_ADDRESS_TESTNET.to_owned()),
             near_signer: None,
             near_private_key: None,
             eth_private_key: None,
@@ -134,6 +161,7 @@ fn default_config(network: Network) -> CliConfig {
             eth_custodian_address: Some(defaults::ETH_CUSTODIAN_ADDRESS_TESTNET.to_owned()),
             fast_bridge_account_id: Some(defaults::FAST_BRIDGE_ACCOUNT_ID_TESTNET.to_owned()),
             fast_bridge_address: Some(defaults::FAST_BRIDGE_ADDRESS_TESTNET.to_owned()),
+            solana_keypair: None,
             config_file: None,
         },
     }
@@ -176,6 +204,10 @@ enum SubCommand {
         #[clap(subcommand)]
         cmd: OmniConnectorSubCommand,
     },
+    SolanaConnector {
+        #[clap(subcommand)]
+        cmd: SolanaConnectorSubCommand,
+    },
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -210,6 +242,9 @@ async fn main() {
         }
         SubCommand::OmniConnector { cmd } => {
             omni_connector_command::match_subcommand(cmd, args.network).await
+        }
+        SubCommand::SolanaConnector { cmd } => {
+            solana_connector_command::match_subcommand(cmd, args.network).await
         }
     }
 }
