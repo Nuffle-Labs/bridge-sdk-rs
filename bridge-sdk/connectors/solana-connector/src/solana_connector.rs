@@ -1,13 +1,12 @@
 use near_primitives::{hash::CryptoHash, types::AccountId};
 use omni_types::{near_events::Nep141LockerEvent, OmniAddress};
 use solana_bridge_client::{
-    DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient,
+    DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient, TransferId,
 };
 use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signature},
 };
-use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -27,15 +26,17 @@ impl SolanaConnector {
         Self::default()
     }
 
-    pub async fn initialize(&self) -> Result<Signature> {
+    pub async fn initialize(&self, program_keypair: Keypair) -> Result<Signature> {
+        // Derived based on near bridge account id and derivation path (bridge-1)
+        const DERIVED_NEAR_BRIDGE_ADDRESS: [u8; 64] = [
+            19, 55, 243, 130, 164, 28, 152, 3, 170, 254, 187, 182, 135, 17, 208, 98, 216, 182,
+            238, 146, 2, 127, 83, 201, 149, 246, 138, 221, 29, 111, 186, 167, 150, 196, 102, 219,
+            89, 69, 115, 114, 185, 116, 6, 233, 154, 114, 222, 142, 167, 206, 157, 39, 177, 221,
+            224, 86, 146, 61, 226, 206, 55, 2, 119, 12,
+        ];
         let tx_id = self.solana_client()?.initialize(
-            // TODO: Improve this
-            [
-                19, 55, 243, 130, 164, 28, 152, 3, 170, 254, 187, 182, 135, 17, 208, 98, 216, 182,
-                238, 146, 2, 127, 83, 201, 149, 246, 138, 221, 29, 111, 186, 167, 150, 196, 102,
-                219, 89, 69, 115, 114, 185, 116, 6, 233, 154, 114, 222, 142, 167, 206, 157, 39,
-                177, 221, 224, 86, 146, 61, 226, 206, 55, 2, 119, 12,
-            ],
+            DERIVED_NEAR_BRIDGE_ADDRESS,
+            program_keypair,
             self.solana_keypair()?,
         ).await?;
 
@@ -93,6 +94,7 @@ impl SolanaConnector {
     pub async fn finalize_transfer(
         &self,
         transaction_hash: CryptoHash,
+        solana_token: Pubkey, // TODO: retrieve from near contract
         sender_id: Option<AccountId>,
     ) -> Result<Signature> {
         let transfer_log = self
@@ -107,26 +109,32 @@ impl SolanaConnector {
             return Err("Unknown error".into());
         };
 
+        let mut signature = signature.to_bytes();
+        signature[64] -= 27;
+
         let payload = FinalizeDepositData {
             payload: DepositPayload {
-                nonce: message_payload.nonce.into(),
-                token: message_payload.token.to_string(),
+                destination_nonce: message_payload.destination_nonce.into(),
+                transfer_id: TransferId {
+                    origin_chain: 1,
+                    origin_nonce: message_payload.transfer_id.origin_nonce,
+                },
+                token: "wrap.testnet".to_string(),
                 amount: message_payload.amount.into(),
                 recipient: match message_payload.recipient {
-                    OmniAddress::Sol(addr) => Pubkey::from_str(&addr)?,
+                    OmniAddress::Sol(addr) => Pubkey::new_from_array(addr.0),
                     _ => return Err("Invalid recipient".into()),
                 },
                 fee_recipient: message_payload.fee_recipient.map(|addr| addr.to_string()),
             },
             signature: signature
-                .to_bytes()
                 .try_into()
                 .map_err(|_| "Invalid signature")?,
         };
 
         let tx_id = self
             .solana_client()?
-            .finalize_transfer(payload, self.solana_keypair()?)
+            .finalize_transfer(payload, solana_token, self.solana_keypair()?)
             .await?;
 
         tracing::info!(
@@ -137,10 +145,10 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
-    pub async fn register_token(&self, token: Pubkey) -> Result<Signature> {
+    pub async fn log_metadata(&self, token: Pubkey) -> Result<Signature> {
         let tx_id = self
             .solana_client()?
-            .register_token(token, self.solana_keypair()?)
+            .log_metadata(token, self.solana_keypair()?)
             .await?;
 
         tracing::info!(
@@ -151,13 +159,13 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
-    pub async fn init_transfer_native(
+    pub async fn init_transfer(
         &self,
         token: Pubkey,
         amount: u128,
         recipient: String,
     ) -> Result<Signature> {
-        let tx_id = self.solana_client()?.init_transfer_native(
+        let tx_id = self.solana_client()?.init_transfer(
             token,
             amount,
             recipient,
@@ -172,14 +180,12 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
-    pub async fn init_transfer_bridged(
+    pub async fn init_transfer_sol(
         &self,
-        near_token_id: String,
         amount: u128,
         recipient: String,
     ) -> Result<Signature> {
-        let tx_id = self.solana_client()?.init_transfer_bridged(
-            near_token_id,
+        let tx_id = self.solana_client()?.init_transfer_sol(
             amount,
             recipient,
             self.solana_keypair()?,
@@ -187,7 +193,7 @@ impl SolanaConnector {
 
         tracing::info!(
             tx_hash = format!("{:?}", tx_id),
-            "Sent init transfer bridged transaction"
+            "Sent init transfer SOL transaction"
         );
 
         Ok(tx_id)

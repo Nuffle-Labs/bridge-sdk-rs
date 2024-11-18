@@ -25,8 +25,15 @@ pub struct DeployTokenData {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub struct TransferId {
+    pub origin_chain: u8,
+    pub origin_nonce: u64,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct DepositPayload {
-    pub nonce: u128,
+    pub destination_nonce: u64,
+    pub transfer_id: TransferId,
     pub token: String,
     pub amount: u128,
     pub recipient: Pubkey,
@@ -62,10 +69,12 @@ impl SolanaBridgeClient {
     pub async fn initialize(
         &self,
         derived_near_bridge_address: [u8; 64],
+        program_keypair: Keypair,
         payer: Keypair,
     ) -> Result<Signature, SolanaClientError> {
         let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
+        let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], &self.program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence)
             = self.get_wormhole_accounts().await?;
@@ -82,6 +91,7 @@ impl SolanaBridgeClient {
             vec![
                 AccountMeta::new(config, false),
                 AccountMeta::new(authority, false),
+                AccountMeta::new(sol_vault, false),
                 AccountMeta::new(wormhole_bridge, false),
                 AccountMeta::new(wormhole_fee_collector, false),
                 AccountMeta::new(wormhole_sequence, false),
@@ -91,11 +101,11 @@ impl SolanaBridgeClient {
                 AccountMeta::new_readonly(sysvar::rent::ID, false),
                 AccountMeta::new_readonly(system_program::ID, false),
                 AccountMeta::new_readonly(self.wormhole_core, false),
-                AccountMeta::new_readonly(self.program_id, false),
+                AccountMeta::new_readonly(self.program_id, true),
             ],
         );
 
-        self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
+        self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message, program_keypair]).await
     }
 
     pub async fn deploy_token(
@@ -148,18 +158,19 @@ impl SolanaBridgeClient {
         self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
     }
 
-    pub async  fn finalize_transfer(
+    pub async fn finalize_transfer(
         &self,
         data: FinalizeDepositData,
+        solana_token: Pubkey,
         payer: Keypair,
     ) -> Result<Signature, SolanaClientError> {
         let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
 
-        const USED_NONCES_PER_ACCOUNT: u128 = 1024;
+        const USED_NONCES_PER_ACCOUNT: u64 = 1024;
         let (used_nonces, _) = Pubkey::find_program_address(
             &[
                 b"used_nonces",
-                (data.payload.nonce / USED_NONCES_PER_ACCOUNT)
+                (data.payload.destination_nonce / USED_NONCES_PER_ACCOUNT)
                     .to_le_bytes()
                     .as_ref(),
             ],
@@ -167,23 +178,22 @@ impl SolanaBridgeClient {
         );
         let recipient = data.payload.recipient;
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
-        let (mint, _) = Pubkey::find_program_address(
-            &[b"wrapped_mint", data.payload.token.as_bytes()],
-            &self.program_id,
-        );
         let (token_account, _) = Pubkey::find_program_address(
-            &[recipient.as_ref(), spl_token::ID.as_ref(), mint.as_ref()],
+            &[recipient.as_ref(), spl_token::ID.as_ref(), solana_token.as_ref()],
             &spl_associated_token_account::ID,
         );
+
+        let (vault, _) =
+            Pubkey::find_program_address(&[b"vault", solana_token.as_ref()], &self.program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence)
             = self.get_wormhole_accounts().await?;
         let wormhole_message = Keypair::new();
 
-        let instruction_data = FinalizeDeposit {
-            payload: DepositInstructionPayload {
-                nonce: data.payload.nonce,
-                token: data.payload.token,
+        let instruction_data = FinalizeTransfer {
+            payload: FinalizeTransferInstructionPayload {
+                destination_nonce: data.payload.destination_nonce,
+                transfer_id: data.payload.transfer_id,
                 amount: data.payload.amount,
                 fee_recipient: data.payload.fee_recipient,
             },
@@ -196,9 +206,10 @@ impl SolanaBridgeClient {
             vec![
                 AccountMeta::new(config, false),
                 AccountMeta::new(used_nonces, false),
-                AccountMeta::new_readonly(recipient, false),
                 AccountMeta::new(authority, false),
-                AccountMeta::new(mint, false),
+                AccountMeta::new_readonly(recipient, false),
+                AccountMeta::new(solana_token, false),
+                AccountMeta::new(vault, false), // Optional vault
                 AccountMeta::new(token_account, false),
                 AccountMeta::new_readonly(config, false),
                 AccountMeta::new(wormhole_bridge, false),
@@ -219,7 +230,68 @@ impl SolanaBridgeClient {
         self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
     }
 
-    pub async fn register_token(
+    pub async fn finalize_transfer_sol(
+        &self,
+        data: FinalizeDepositData,
+        payer: Keypair,
+    ) -> Result<Signature, SolanaClientError> {
+        let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
+        let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], &self.program_id);
+
+        const USED_NONCES_PER_ACCOUNT: u64 = 1024;
+        let (used_nonces, _) = Pubkey::find_program_address(
+            &[
+                b"used_nonces",
+                (data.payload.destination_nonce / USED_NONCES_PER_ACCOUNT)
+                    .to_le_bytes()
+                    .as_ref(),
+            ],
+            &self.program_id,
+        );
+        let recipient = data.payload.recipient;
+        let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
+
+        let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence)
+            = self.get_wormhole_accounts().await?;
+        let wormhole_message = Keypair::new();
+
+        let instruction_data = FinalizeTransfer {
+            payload: FinalizeTransferInstructionPayload {
+                destination_nonce: data.payload.destination_nonce,
+                transfer_id: data.payload.transfer_id,
+                amount: data.payload.amount,
+                fee_recipient: data.payload.fee_recipient,
+            },
+            signature: data.signature,
+        };
+
+        let instruction = Instruction::new_with_borsh(
+            self.program_id,
+            &instruction_data,
+            vec![
+                AccountMeta::new(config, false),
+                AccountMeta::new(used_nonces, false),
+                AccountMeta::new(authority, false),
+                AccountMeta::new_readonly(recipient, false),
+                AccountMeta::new(sol_vault, false),
+                AccountMeta::new_readonly(config, false),
+                AccountMeta::new(wormhole_bridge, false),
+                AccountMeta::new(wormhole_fee_collector, false),
+                AccountMeta::new(wormhole_sequence, false),
+                AccountMeta::new(wormhole_message.pubkey(), true),
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new_readonly(sysvar::clock::ID, false),
+                AccountMeta::new_readonly(sysvar::rent::ID, false),
+                AccountMeta::new_readonly(self.wormhole_core, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+                AccountMeta::new_readonly(system_program::ID, false),
+            ],
+        );
+
+        self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
+    }
+
+    pub async fn log_metadata(
         &self,
         token: Pubkey,
         payer: Keypair,
@@ -239,7 +311,7 @@ impl SolanaBridgeClient {
             = self.get_wormhole_accounts().await?;
         let wormhole_message = Keypair::new();
 
-        let instruction_data = RegisterMint {
+        let instruction_data = LogMetadata {
             override_name: String::new(),
             override_symbol: String::new(),
         };
@@ -272,7 +344,7 @@ impl SolanaBridgeClient {
         self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
     }
 
-    pub async fn init_transfer_native(
+    pub async fn init_transfer(
         &self,
         token: Pubkey,
         amount: u128,
@@ -281,6 +353,7 @@ impl SolanaBridgeClient {
     ) -> Result<Signature, SolanaClientError> {
         let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
+        let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], &self.program_id);
 
         let (from_token_account, _) = Pubkey::find_program_address(
             &[
@@ -297,16 +370,17 @@ impl SolanaBridgeClient {
             = self.get_wormhole_accounts().await?;
         let wormhole_message = Keypair::new();
 
-        let instruction_data = Send { amount, recipient };
+        let instruction_data = InitTransfer { amount, recipient, fee: 0, native_fee: 1 };
 
         let instruction = Instruction::new_with_borsh(
             self.program_id,
             &instruction_data,
             vec![
                 AccountMeta::new_readonly(authority, false),
-                AccountMeta::new_readonly(token, false),
+                AccountMeta::new(token, false),
                 AccountMeta::new(from_token_account, false),
-                AccountMeta::new(vault, false),
+                AccountMeta::new(vault, false), // Optional
+                AccountMeta::new(sol_vault, false),
                 AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new_readonly(config, false),
                 AccountMeta::new(wormhole_bridge, false),
@@ -325,35 +399,26 @@ impl SolanaBridgeClient {
         self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
     }
     
-    pub async fn init_transfer_bridged(
+    pub async fn init_transfer_sol(
         &self,
-        near_token_id: String,
         amount: u128,
         recipient: String,
         payer: Keypair,
     ) -> Result<Signature, SolanaClientError> {
         let (config, _) = Pubkey::find_program_address(&[b"config"], &self.program_id);
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], &self.program_id);
-
-        let (mint, _) = Pubkey::find_program_address(
-            &[b"wrapped_mint", near_token_id.as_bytes()],
-            &self.program_id,
-        );
-
-        let (from_token_account, _) = Pubkey::find_program_address(
-            &[payer.pubkey().as_ref(), spl_token::ID.as_ref(), mint.as_ref()],
-            &spl_associated_token_account::ID,
-        );
+        let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], &self.program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence)
             = self.get_wormhole_accounts().await?;
 
         let wormhole_message = Keypair::new();
 
-        let instruction_data = Repay {
-            token: near_token_id,
+        let instruction_data = InitTransferSol {
             amount,
             recipient,
+            fee: 0,
+            native_fee: 0,
         };
 
         let instruction = Instruction::new_with_borsh(
@@ -361,8 +426,7 @@ impl SolanaBridgeClient {
             &instruction_data,
             vec![
                 AccountMeta::new_readonly(authority, false),
-                AccountMeta::new(mint, false),
-                AccountMeta::new(from_token_account, false),
+                AccountMeta::new(sol_vault, false),
                 AccountMeta::new_readonly(payer.pubkey(), true),
                 AccountMeta::new_readonly(config, false),
                 AccountMeta::new(wormhole_bridge, false),
@@ -374,11 +438,8 @@ impl SolanaBridgeClient {
                 AccountMeta::new_readonly(sysvar::rent::ID, false),
                 AccountMeta::new_readonly(self.wormhole_core, false),
                 AccountMeta::new_readonly(system_program::ID, false),
-                AccountMeta::new_readonly(spl_token::ID, false),
             ],
         );
-
-        println!("instruction: {:?}", instruction);
 
         self.send_and_confirm_transaction(vec![instruction], &[payer, wormhole_message]).await
     }

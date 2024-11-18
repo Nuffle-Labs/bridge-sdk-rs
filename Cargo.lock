@@ -1057,6 +1057,7 @@ dependencies = [
  "serde",
  "serde_json",
  "solana-connector",
+ "solana-sdk",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -5253,7 +5254,7 @@ dependencies = [
 [[package]]
 name = "omni-types"
 version = "2.0.0"
-source = "git+https://github.com/near-one/omni-bridge?rev=234cc6af6920027f779b842a6d8afc00530ddbc2#234cc6af6920027f779b842a6d8afc00530ddbc2"
+source = "git+https://github.com/near-one/omni-bridge?rev=303ca7bc7cdb39c4a356b65b10221259a632ac54#303ca7bc7cdb39c4a356b65b10221259a632ac54"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -7271,6 +7272,7 @@ version = "0.1.0"
 dependencies = [
  "borsh 1.5.1",
  "mpl-token-metadata",
+ "sha2 0.10.8",
  "solana-client",
  "solana-sdk",
  "spl-associated-token-account 5.0.1",
