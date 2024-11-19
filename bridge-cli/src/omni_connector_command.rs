@@ -3,7 +3,10 @@ use clap::Subcommand;
 use ethers_core::types::TxHash;
 use near_primitives::{hash::CryptoHash, types::AccountId};
 use omni_connector::{OmniConnector, OmniConnectorBuilder};
-use omni_types::{locker_args::{BindTokenArgs, FinTransferArgs}, ChainKind, Fee};
+use omni_types::{
+    locker_args::{BindTokenArgs, FinTransferArgs},
+    ChainKind, Fee,
+};
 use std::str::FromStr;
 
 #[derive(Subcommand, Debug)]
@@ -55,6 +58,10 @@ pub enum OmniConnectorSubCommand {
         amount: u128,
         #[clap(short, long)]
         receiver: String,
+        #[clap(short, long)]
+        fee: u128,
+        #[clap(short, long)]
+        native_fee: u128,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -181,23 +188,35 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             token,
             amount,
             receiver,
+            fee,
+            native_fee,
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .evm_init_transfer(token, amount, receiver)
+                .evm_init_transfer(token, amount, receiver, Fee {
+                    fee: fee.into(),
+                    native_fee: native_fee.into(),
+                })
                 .await
                 .unwrap();
         }
-        OmniConnectorSubCommand::NearDeployToken { source_chain_id, vaa, config_cli } => {
+        OmniConnectorSubCommand::NearDeployToken {
+            source_chain_id,
+            vaa,
+            config_cli,
+        } => {
             omni_connector(network, config_cli)
-                .near_deploy_token(
-                    ChainKind::try_from(source_chain_id).unwrap(),
-                    &vaa,
-                )
+                .near_deploy_token(ChainKind::try_from(source_chain_id).unwrap(), &vaa)
                 .await
                 .unwrap();
         }
-        OmniConnectorSubCommand::NearFinTransfer { token, source_chain_id, receiver, vaa, config_cli } => {
+        OmniConnectorSubCommand::NearFinTransfer {
+            token,
+            source_chain_id,
+            receiver,
+            vaa,
+            config_cli,
+        } => {
             let args = omni_types::prover_args::WormholeVerifyProofArgs {
                 proof_kind: omni_types::prover_result::ProofKind::InitTransfer,
                 vaa,
@@ -224,7 +243,11 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .await
                 .unwrap();
         }
-        OmniConnectorSubCommand::BindTokenWormhole { source_chain_id, vaa, config_cli } => {
+        OmniConnectorSubCommand::BindTokenWormhole {
+            source_chain_id,
+            vaa,
+            config_cli,
+        } => {
             let args = omni_types::prover_args::WormholeVerifyProofArgs {
                 proof_kind: omni_types::prover_result::ProofKind::DeployToken,
                 vaa,

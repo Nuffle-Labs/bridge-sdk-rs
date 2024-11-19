@@ -1,7 +1,7 @@
 use crate::{DeployTokenData, TransferId};
 use borsh::BorshSerialize;
+use sha2::{Digest, Sha256};
 use solana_sdk::pubkey::Pubkey;
-use sha2::{Sha256, Digest};
 
 fn get_instruction_identifier(instruction_name: &str) -> [u8; 8] {
     let mut identifier = Sha256::new();

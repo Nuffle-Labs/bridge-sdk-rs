@@ -1,7 +1,8 @@
 use near_primitives::{hash::CryptoHash, types::AccountId};
 use omni_types::{near_events::Nep141LockerEvent, OmniAddress};
 use solana_bridge_client::{
-    DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient, TransferId,
+    DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient,
+    TransferId,
 };
 use solana_sdk::{
     pubkey::Pubkey,
@@ -29,16 +30,19 @@ impl SolanaConnector {
     pub async fn initialize(&self, program_keypair: Keypair) -> Result<Signature> {
         // Derived based on near bridge account id and derivation path (bridge-1)
         const DERIVED_NEAR_BRIDGE_ADDRESS: [u8; 64] = [
-            19, 55, 243, 130, 164, 28, 152, 3, 170, 254, 187, 182, 135, 17, 208, 98, 216, 182,
-            238, 146, 2, 127, 83, 201, 149, 246, 138, 221, 29, 111, 186, 167, 150, 196, 102, 219,
-            89, 69, 115, 114, 185, 116, 6, 233, 154, 114, 222, 142, 167, 206, 157, 39, 177, 221,
-            224, 86, 146, 61, 226, 206, 55, 2, 119, 12,
+            19, 55, 243, 130, 164, 28, 152, 3, 170, 254, 187, 182, 135, 17, 208, 98, 216, 182, 238,
+            146, 2, 127, 83, 201, 149, 246, 138, 221, 29, 111, 186, 167, 150, 196, 102, 219, 89,
+            69, 115, 114, 185, 116, 6, 233, 154, 114, 222, 142, 167, 206, 157, 39, 177, 221, 224,
+            86, 146, 61, 226, 206, 55, 2, 119, 12,
         ];
-        let tx_id = self.solana_client()?.initialize(
-            DERIVED_NEAR_BRIDGE_ADDRESS,
-            program_keypair,
-            self.solana_keypair()?,
-        ).await?;
+        let tx_id = self
+            .solana_client()?
+            .initialize(
+                DERIVED_NEAR_BRIDGE_ADDRESS,
+                program_keypair,
+                self.solana_keypair()?,
+            )
+            .await?;
 
         tracing::info!(
             tx_hash = format!("{:?}", tx_id),
@@ -127,9 +131,7 @@ impl SolanaConnector {
                 },
                 fee_recipient: message_payload.fee_recipient.map(|addr| addr.to_string()),
             },
-            signature: signature
-                .try_into()
-                .map_err(|_| "Invalid signature")?,
+            signature: signature.try_into().map_err(|_| "Invalid signature")?,
         };
 
         let tx_id = self
@@ -165,12 +167,10 @@ impl SolanaConnector {
         amount: u128,
         recipient: String,
     ) -> Result<Signature> {
-        let tx_id = self.solana_client()?.init_transfer(
-            token,
-            amount,
-            recipient,
-            self.solana_keypair()?,
-        ).await?;
+        let tx_id = self
+            .solana_client()?
+            .init_transfer(token, amount, recipient, self.solana_keypair()?)
+            .await?;
 
         tracing::info!(
             tx_hash = format!("{:?}", tx_id),
@@ -180,16 +180,11 @@ impl SolanaConnector {
         Ok(tx_id)
     }
 
-    pub async fn init_transfer_sol(
-        &self,
-        amount: u128,
-        recipient: String,
-    ) -> Result<Signature> {
-        let tx_id = self.solana_client()?.init_transfer_sol(
-            amount,
-            recipient,
-            self.solana_keypair()?,
-        ).await?;
+    pub async fn init_transfer_sol(&self, amount: u128, recipient: String) -> Result<Signature> {
+        let tx_id = self
+            .solana_client()?
+            .init_transfer_sol(amount, recipient, self.solana_keypair()?)
+            .await?;
 
         tracing::info!(
             tx_hash = format!("{:?}", tx_id),

@@ -66,7 +66,10 @@ pub enum SolanaConnectorSubCommand {
 
 pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) {
     match cmd {
-        SolanaConnectorSubCommand::Initialize { program_keypair, config_cli } => {
+        SolanaConnectorSubCommand::Initialize {
+            program_keypair,
+            config_cli,
+        } => {
             solana_connector(network, config_cli)
                 .initialize(Keypair::from_bytes(&program_keypair).unwrap())
                 .await
@@ -100,10 +103,7 @@ pub async fn match_subcommand(cmd: SolanaConnectorSubCommand, network: Network) 
                 .await
                 .unwrap();
         }
-        SolanaConnectorSubCommand::FinalizeTransferSol {
-            ..
-        } => {
-        }
+        SolanaConnectorSubCommand::FinalizeTransferSol { .. } => {}
         SolanaConnectorSubCommand::LogMetadata { token, config_cli } => {
             solana_connector(network, config_cli)
                 .log_metadata(token.parse().unwrap())

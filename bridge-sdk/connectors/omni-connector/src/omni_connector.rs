@@ -9,8 +9,8 @@ use near_primitives::{
     views::{FinalExecutionOutcomeView, FinalExecutionStatus},
 };
 use near_token::NearToken;
-use omni_types::{locker_args::DeployTokenArgs, prover_args::EvmVerifyProofArgs};
 use omni_types::prover_result::ProofKind;
+use omni_types::{locker_args::DeployTokenArgs, prover_args::EvmVerifyProofArgs};
 use omni_types::{
     locker_args::{BindTokenArgs, ClaimFeeArgs, FinTransferArgs},
     near_events::Nep141LockerEvent,
@@ -201,7 +201,7 @@ impl OmniConnector {
             token_locker_id.to_string(),
             "deploy_token".to_string(),
             serialized_args,
-            300_000_000_000_000,
+            90_000_000_000_000,
             4_000_000_000_000_000_000_000_000,
         )
         .await?;
@@ -330,6 +330,7 @@ impl OmniConnector {
         near_token_id: String,
         amount: u128,
         receiver: String,
+        fee: Fee,
     ) -> Result<TxHash> {
         let factory = self.bridge_token_factory()?;
 
@@ -364,8 +365,14 @@ impl OmniConnector {
             tracing::debug!("Approved tokens for spending");
         }
 
-        // TODO: Provide fee and nativeFee
-        let withdraw_call = factory.init_transfer(erc20_address, amount, 0, 0, receiver, String::new());
+        let withdraw_call = factory.init_transfer(
+            erc20_address,
+            amount,
+            fee.fee.into(),
+            fee.native_fee.into(),
+            receiver,
+            String::new(),
+        );
         let tx = withdraw_call.send().await?;
 
         tracing::info!(
@@ -417,7 +424,7 @@ impl OmniConnector {
             "sign_transfer".to_string(),
             serde_json::json!({
                 "transfer_id": {
-                    "origin_chain": "Near", // TODO: provide transfer_id instead of only nonce
+                    "origin_chain": ChainKind::Near, // TODO: provide transfer_id instead of only nonce
                     "origin_nonce": origin_nonce
                 },
                 "fee_recipient": fee_recipient,
@@ -480,7 +487,9 @@ impl OmniConnector {
 
         self.bind_token(BindTokenArgs {
             chain_kind: ChainKind::Eth,
-            prover_args: borsh::to_vec(&evm_verify_proof_args).map_err(|_| BridgeSdkError::EthProofError("Failed to serialize proof".to_string()))?,
+            prover_args: borsh::to_vec(&evm_verify_proof_args).map_err(|_| {
+                BridgeSdkError::EthProofError("Failed to serialize proof".to_string())
+            })?,
         })
         .await
     }
