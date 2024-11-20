@@ -333,7 +333,6 @@ impl SolanaBridgeClient {
             vec![
                 AccountMeta::new_readonly(authority, false),
                 AccountMeta::new_readonly(token, false),
-                AccountMeta::new(self.program_id, false),
                 AccountMeta::new(metadata, false),
                 AccountMeta::new(vault, false),
                 AccountMeta::new_readonly(config, false),

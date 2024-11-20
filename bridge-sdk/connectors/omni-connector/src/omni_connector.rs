@@ -201,7 +201,7 @@ impl OmniConnector {
             token_locker_id.to_string(),
             "deploy_token".to_string(),
             serialized_args,
-            90_000_000_000_000,
+            120_000_000_000_000,
             4_000_000_000_000_000_000_000_000,
         )
         .await?;
