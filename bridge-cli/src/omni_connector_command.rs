@@ -511,6 +511,7 @@ fn omni_connector(network: Network, cli_config: CliConfig) -> OmniConnector {
         .eth_bridge_client(Some(eth_bridge_client))
         .base_bridge_client(Some(base_bridge_client))
         .arb_bridge_client(Some(arb_bridge_client))
+        .solana_bridge_client(Some(solana_bridge_client))
         .wormhole_bridge_client(None)
         .build()
         .unwrap()

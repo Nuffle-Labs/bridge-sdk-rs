@@ -20,11 +20,8 @@ const STORAGE_DEPOSIT_GAS: u64 = 10_000_000_000_000;
 const LOG_METADATA_GAS: u64 = 300_000_000_000_000;
 const LOG_METADATA_DEPOSIT: u128 = 200_000_000_000_000_000_000_000;
 
-const DEPLOY_TOKEN_WITH_VAA_GAS: u64 = 120_000_000_000_000;
-const DEPLOY_TOKEN_WITH_VAA_DEPOSIT: u128 = 4_000_000_000_000_000_000_000_000;
-
-const DEPLOY_TOKEN_WITH_EVM_PROOF_GAS: u64 = 120_000_000_000_000;
-const DEPLOY_TOKEN_WITH_EVM_PROOF_DEPOSIT: u128 = 4_000_000_000_000_000_000_000_000;
+const DEPLOY_TOKEN_GAS: u64 = 120_000_000_000_000;
+const DEPLOY_TOKEN_DEPOSIT: u128 = 4_000_000_000_000_000_000_000_000;
 
 const BIND_TOKEN_GAS: u64 = 300_000_000_000_000;
 const BIND_TOKEN_DEPOSIT: u128 = 200_000_000_000_000_000_000_000;
@@ -266,8 +263,8 @@ impl NearBridgeClient {
             token_locker_id.to_string(),
             "deploy_token".to_string(),
             borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
-            DEPLOY_TOKEN_WITH_VAA_GAS,
-            DEPLOY_TOKEN_WITH_VAA_DEPOSIT,
+            DEPLOY_TOKEN_GAS,
+            DEPLOY_TOKEN_DEPOSIT,
         )
         .await?;
 
@@ -290,8 +287,8 @@ impl NearBridgeClient {
             token_locker_id.to_string(),
             "deploy_token".to_string(),
             borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
-            DEPLOY_TOKEN_WITH_EVM_PROOF_GAS,
-            DEPLOY_TOKEN_WITH_EVM_PROOF_DEPOSIT,
+            DEPLOY_TOKEN_GAS,
+            DEPLOY_TOKEN_DEPOSIT,
         )
         .await?;
 
