@@ -10,7 +10,7 @@ use omni_connector::{
     BindTokenArgs, DeployTokenArgs, FinTransferArgs, InitTransferArgs, LogMetadataArgs,
     OmniConnector, OmniConnectorBuilder,
 };
-use omni_types::{ChainKind, Fee};
+use omni_types::{ChainKind, Fee, TransferId};
 use solana_bridge_client::SolanaBridgeClientBuilder;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::signature::Keypair;
@@ -51,7 +51,11 @@ pub enum OmniConnectorSubCommand {
     },
     NearSignTransfer {
         #[clap(short, long)]
-        nonce: u64,
+        origin_chain_id: u8,
+        #[clap(short, long)]
+        origin_nonce: u64,
+        #[clap(short, long)]
+        fee_recipient: Option<String>,
         #[clap(short, long)]
         fee: u128,
         #[clap(long)]
@@ -224,15 +228,20 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .unwrap();
         }
         OmniConnectorSubCommand::NearSignTransfer {
-            nonce,
+            origin_chain_id,
+            origin_nonce,
+            fee_recipient,
             fee,
             native_fee,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .near_sign_transfer(
-                    nonce,
-                    None,
+                    TransferId {
+                        origin_chain: ChainKind::try_from(origin_chain_id).unwrap(),
+                        origin_nonce,
+                    },
+                    fee_recipient.map(|recipient| AccountId::from_str(&recipient).unwrap()),
                     Some(Fee {
                         fee: fee.into(),
                         native_fee: native_fee.into(),
@@ -368,8 +377,8 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .deploy_token(DeployTokenArgs::SolanaDeployToken {
-                    tx_hash: transaction_hash.parse().unwrap(),
+                .deploy_token(DeployTokenArgs::SolanaDeployTokenWithTxHash {
+                    near_tx_hash: transaction_hash.parse().unwrap(),
                     sender_id: sender_id.map(|id| id.parse().unwrap()),
                 })
                 .await
@@ -407,8 +416,8 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .fin_transfer(FinTransferArgs::SolanaFinTransfer {
-                    tx_hash: transaction_hash.parse().unwrap(),
+                .fin_transfer(FinTransferArgs::SolanaFinTransferWithTxHash {
+                    near_tx_hash: transaction_hash.parse().unwrap(),
                     solana_token: solana_token.parse().unwrap(),
                     sender_id: sender_id.map(|id| id.parse().unwrap()),
                 })
