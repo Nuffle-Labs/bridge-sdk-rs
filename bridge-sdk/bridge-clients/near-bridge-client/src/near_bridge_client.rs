@@ -363,6 +363,32 @@ impl NearBridgeClient {
         fee: Option<Fee>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
+        let token_locker_id = self.token_locker_id_as_account_id()?;
+
+        let response = near_rpc_client::view(
+            endpoint,
+            ViewRequest {
+                contract_account_id: token_locker_id,
+                method_name: "get_mpc_account".to_string(),
+                args: serde_json::Value::Null,
+            },
+        )
+        .await?;
+
+        let mpc_account = serde_json::from_slice::<AccountId>(&response)?;
+
+        let response = near_rpc_client::view(
+            endpoint,
+            ViewRequest {
+                contract_account_id: mpc_account,
+                method_name: "experimental_signature_deposit".to_string(),
+                args: serde_json::Value::Null,
+            },
+        )
+        .await?;
+
+        let required_deposit = serde_json::from_slice::<String>(&response)
+            .map(|response| response.parse::<u128>().unwrap_or(SIGN_TRANSFER_DEPOSIT))?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
@@ -378,7 +404,7 @@ impl NearBridgeClient {
                 .to_string()
                 .into_bytes(),
                 gas: SIGN_TRANSFER_GAS,
-                deposit: SIGN_TRANSFER_DEPOSIT, // TODO: make a contract call to signer account to determine the required deposit
+                deposit: required_deposit,
             },
             near_primitives::views::TxExecutionStatus::Executed,
         )
