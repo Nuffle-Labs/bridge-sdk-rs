@@ -890,6 +890,8 @@ dependencies = [
  "near-light-client-on-eth",
  "near-rpc-client",
  "serde_json",
+ "solana-bridge-client",
+ "solana-client",
  "thiserror 2.0.11",
 ]
 
