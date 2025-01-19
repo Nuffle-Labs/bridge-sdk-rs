@@ -30,7 +30,7 @@ pub enum OmniConnectorSubCommand {
 
     #[clap(about = "Deploy a token on NEAR")]
     NearDeployToken {
-        #[clap(short, long, help = "Chain to deploy the token on")]
+        #[clap(short, long, help = "Origin chain of the token to deploy")]
         chain: ChainKind,
         #[clap(
             short,
@@ -43,7 +43,7 @@ pub enum OmniConnectorSubCommand {
     },
     #[clap(about = "Deploy a token on NEAR with EVM proof")]
     NearDeployTokenWithEvmProof {
-        #[clap(short, long, help = "Chain to deploy the token on")]
+        #[clap(short, long, help = "Origin chain of the token to deploy")]
         chain: ChainKind,
         #[clap(
             short,
@@ -85,13 +85,13 @@ pub enum OmniConnectorSubCommand {
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
         #[clap(short, long, help = "Recipient account ID on the other chain")]
-        receiver: String,
+        recipient: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
     #[clap(about = "Finalize a transfer on NEAR")]
     NearFinTransfer {
-        #[clap(short, long, help = "Chain to finalize the transfer on")]
+        #[clap(short, long, help = "Origin chain of the transfer to finalize")]
         chain: ChainKind,
         #[clap(
             short,
@@ -108,11 +108,7 @@ pub enum OmniConnectorSubCommand {
     EvmDeployToken {
         #[clap(short, long, help = "Chain to deploy the token on")]
         chain: ChainKind,
-        #[clap(
-            short,
-            long,
-            help = "Transaction hash of the LogMetadata call on other chain"
-        )]
+        #[clap(short, long, help = "Transaction hash of the LogMetadata call on NEAR")]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -121,7 +117,7 @@ pub enum OmniConnectorSubCommand {
     EvmBindToken {
         #[clap(short, long, help = "Chain to bind the token on")]
         chain: ChainKind,
-        #[clap(short, long, help = "VAA from DeployToken call")]
+        #[clap(short, long, help = "Transaction hash of the DeployToken call on NEAR")]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -134,8 +130,8 @@ pub enum OmniConnectorSubCommand {
         token: String,
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long, help = "Recipient address on the other chain")]
-        receiver: String,
+        #[clap(short, long, help = "Recipient address on the NEAR")]
+        recipient: String,
         #[clap(short, long, help = "Fee to charge for the transfer")]
         fee: u128,
         #[clap(short, long, help = "Native fee to charge for the transfer")]
@@ -159,18 +155,18 @@ pub enum OmniConnectorSubCommand {
 
     #[clap(about = "Initialize a transfer on Solana")]
     SolanaInitialize {
-        #[clap(short, long, help = "Keypair (private_key) for the program")]
+        #[clap(
+            short,
+            long,
+            help = "Keypair (private_key) for the program or path to the file containing keypair"
+        )]
         program_keypair: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
     #[clap(about = "Deploy a token on Solana")]
     SolanaDeployToken {
-        #[clap(
-            short,
-            long,
-            help = "Transaction hash of the LogMetadata call on other chain"
-        )]
+        #[clap(short, long, help = "Transaction hash of the LogMetadata call on NEAR")]
         tx_hash: String,
         #[clap(short, long, help = "Sender ID of the LogMetadata call on NEAR")]
         sender_id: Option<AccountId>,
@@ -220,7 +216,7 @@ pub enum OmniConnectorSubCommand {
 
     #[clap(about = "Bind a token on a chain that supports Wormhole")]
     WormholeBindToken {
-        #[clap(short, long, help = "Chain to bind the token on")]
+        #[clap(short, long, help = "Origin chain of the token to bind")]
         chain: ChainKind,
         #[clap(short, long, help = "VAA from deploy token transaction")]
         vaa: String,
@@ -286,14 +282,14 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
         OmniConnectorSubCommand::NearInitTransfer {
             token,
             amount,
-            receiver,
+            recipient,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .init_transfer(InitTransferArgs::NearInitTransfer {
                     token,
                     amount,
-                    receiver,
+                    recipient,
                 })
                 .await
                 .unwrap();
@@ -358,7 +354,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             chain,
             token,
             amount,
-            receiver,
+            recipient,
             fee,
             native_fee,
             config_cli,
@@ -368,7 +364,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                     chain_kind: chain,
                     token,
                     amount,
-                    receiver,
+                    recipient,
                     fee: Fee {
                         fee: fee.into(),
                         native_fee: native_fee.into(),
