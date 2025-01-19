@@ -410,9 +410,7 @@ impl OmniConnector {
     pub async fn solana_log_metadata(&self, token: Pubkey) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
-        let tx_hash = solana_bridge_client
-            .log_metadata(token)
-            .await?;
+        let tx_hash = solana_bridge_client.log_metadata(token).await?;
 
         tracing::info!(
             tx_hash = format!("{:?}", tx_hash),
@@ -470,9 +468,7 @@ impl OmniConnector {
             })?,
         };
 
-        let tx_hash =solana_bridge_client
-            .deploy_token(payload)
-            .await?;
+        let tx_hash = solana_bridge_client.deploy_token(payload).await?;
 
         Ok(tx_hash)
     }
@@ -575,9 +571,7 @@ impl OmniConnector {
         };
 
         let tx_hash = if solana_token == Pubkey::default() {
-            solana_bridge_client
-                .finalize_transfer_sol(payload)
-                .await?
+            solana_bridge_client.finalize_transfer_sol(payload).await?
         } else {
             solana_bridge_client
                 .finalize_transfer(payload, solana_token)

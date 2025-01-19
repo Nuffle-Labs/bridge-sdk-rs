@@ -20,170 +20,209 @@ use crate::{combined_config, CliConfig, Network};
 
 #[derive(Subcommand, Debug)]
 pub enum OmniConnectorSubCommand {
+    #[clap(about = "Log metadata for a token")]
     LogMetadata {
-        #[clap(long)]
+        #[clap(short, long, help = "Token address to logging metadata")]
         token: OmniAddress,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+
+    #[clap(about = "Deploy a token on NEAR")]
     NearDeployToken {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to deploy the token on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            help = "Transaction hash of the LogMetadata call on other chain"
+        )]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Deploy a token on NEAR with EVM proof")]
     NearDeployTokenWithEvmProof {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to deploy the token on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            help = "Transaction hash of the LogMetadata call on other chain"
+        )]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Deposit storage for a token on NEAR")]
     NearStorageDeposit {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Token to deposit storage for")]
         token: String,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Amount to deposit")]
         amount: u128,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Sign a transfer on NEAR")]
     NearSignTransfer {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Origin chain ID of transfer to sign")]
         origin_chain_id: u8,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Origin nonce of transfer to sign")]
         origin_nonce: u64,
-        #[clap(short, long)]
-        fee_recipient: Option<String>,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Fee recipient account ID")]
+        fee_recipient: Option<AccountId>,
+        #[clap(short, long, help = "Fee to charge for the transfer")]
         fee: u128,
-        #[clap(long)]
+        #[clap(short, long, help = "Native fee to charge for the transfer")]
         native_fee: u128,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Initialize a transfer on NEAR")]
     NearInitTransfer {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Token to transfer")]
         token: String,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Recipient account ID on the other chain")]
         receiver: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Finalize a transfer on NEAR")]
     NearFinTransfer {
-        #[clap(short, long)]
-        token_id: String,
-        #[clap(short, long)]
-        account_id: String,
-        #[clap(long)]
-        storage_deposit_amount: Option<u128>,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to finalize the transfer on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            help = "Storage deposit actions. Format: token_id1:account_id1:amount1,token_id2:account_id2:amount2,..."
+        )]
+        storage_deposit_actions: Vec<String>,
+        #[clap(short, long, help = "VAA from init transfer transaction")]
         vaa: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Deploy a token on EVM")]
     EvmDeployToken {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to deploy the token on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            help = "Transaction hash of the LogMetadata call on other chain"
+        )]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Bind a token on EVM")]
     EvmBindToken {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to bind the token on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(short, long, help = "VAA from DeployToken call")]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Initialize a transfer on EVM")]
     EvmInitTransfer {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to initialize the transfer on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Token to transfer")]
         token: String,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Recipient address on the other chain")]
         receiver: String,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Fee to charge for the transfer")]
         fee: u128,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Native fee to charge for the transfer")]
         native_fee: u128,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Finalize a transfer on EVM")]
     EvmFinTransfer {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to finalize the transfer on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            help = "Transaction hash of the sign_transfer call on NEAR"
+        )]
         tx_hash: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
 
+    #[clap(about = "Initialize a transfer on Solana")]
     SolanaInitialize {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Keypair (private_key) for the program")]
         program_keypair: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Deploy a token on Solana")]
     SolanaDeployToken {
-        #[clap(short, long)]
-        transaction_hash: String,
-        #[clap(short, long)]
-        sender_id: Option<String>,
+        #[clap(
+            short,
+            long,
+            help = "Transaction hash of the LogMetadata call on other chain"
+        )]
+        tx_hash: String,
+        #[clap(short, long, help = "Sender ID of the LogMetadata call on NEAR")]
+        sender_id: Option<AccountId>,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Initialize a transfer on Solana")]
+    SolanaInitTransfer {
+        #[clap(short, long, help = "Token to transfer")]
+        token: String,
+        #[clap(short, long, help = "Amount to transfer")]
+        amount: u128,
+        #[clap(short, long, help = "Recipient account ID on the other chain")]
+        recipient: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+    #[clap(about = "Initialize a native transfer on Solana")]
+    SolanaInitTransferSol {
+        #[clap(short, long, help = "Amount to transfer")]
+        amount: u128,
+        #[clap(short, long, help = "Recipient account ID on the other chain")]
+        recipient: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+    #[clap(about = "Finalize a transfer on Solana")]
     SolanaFinalizeTransfer {
-        #[clap(short, long)]
-        transaction_hash: String,
-        #[clap(long)]
-        sender_id: Option<String>,
-        #[clap(short, long)]
+        #[clap(short, long, help = "Transaction hash of sign_transfer call on NEAR")]
+        tx_hash: String,
+        #[clap(long, help = "Sender ID of the sign_transfer call on NEAR")]
+        sender_id: Option<AccountId>,
+        #[clap(short, long, help = "Token to finalize the transfer for")]
         solana_token: String,
         #[command(flatten)]
         config_cli: CliConfig,
     },
+    #[clap(about = "Finalize a native transfer on Solana")]
     SolanaFinalizeTransferSol {
-        #[clap(short, long)]
-        transaction_hash: String,
-        #[clap(short, long)]
-        sender_id: Option<String>,
-        #[command(flatten)]
-        config_cli: CliConfig,
-    },
-    SolanaInitTransfer {
-        #[clap(short, long)]
-        token: String,
-        #[clap(short, long)]
-        amount: u128,
-        #[clap(short, long)]
-        recipient: String,
-        #[command(flatten)]
-        config_cli: CliConfig,
-    },
-    SolanaInitTransferSol {
-        #[clap(short, long)]
-        amount: u128,
-        #[clap(short, long)]
-        recipient: String,
+        #[clap(short, long, help = "Transaction hash of sign_transfer call on NEAR")]
+        tx_hash: String,
+        #[clap(short, long, help = "Sender ID of the sign_transfer call on NEAR")]
+        sender_id: Option<AccountId>,
         #[command(flatten)]
         config_cli: CliConfig,
     },
 
+    #[clap(about = "Bind a token on a chain that supports Wormhole")]
     WormholeBindToken {
-        #[clap(short, long)]
+        #[clap(short, long, help = "Chain to bind the token on")]
         chain: ChainKind,
-        #[clap(short, long)]
+        #[clap(short, long, help = "VAA from deploy token transaction")]
         vaa: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -235,7 +274,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         origin_chain: ChainKind::try_from(origin_chain_id).unwrap(),
                         origin_nonce,
                     },
-                    fee_recipient.map(|recipient| AccountId::from_str(&recipient).unwrap()),
+                    fee_recipient,
                     Some(Fee {
                         fee: fee.into(),
                         native_fee: native_fee.into(),
@@ -260,10 +299,8 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .unwrap();
         }
         OmniConnectorSubCommand::NearFinTransfer {
-            token_id,
-            account_id,
-            storage_deposit_amount,
             chain,
+            storage_deposit_actions,
             vaa,
             config_cli,
         } => {
@@ -274,11 +311,17 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             omni_connector(network, config_cli)
                 .fin_transfer(FinTransferArgs::NearFinTransfer {
                     chain_kind: chain,
-                    storage_deposit_actions: vec![omni_types::locker_args::StorageDepositAction {
-                        token_id: AccountId::from_str(&token_id).unwrap(),
-                        account_id: AccountId::from_str(&account_id).unwrap(),
-                        storage_deposit_amount,
-                    }],
+                    storage_deposit_actions: storage_deposit_actions
+                        .iter()
+                        .map(|action| {
+                            let parts: Vec<&str> = action.split(':').collect();
+                            omni_types::locker_args::StorageDepositAction {
+                                token_id: parts[0].parse().unwrap(),
+                                account_id: parts[1].parse().unwrap(),
+                                storage_deposit_amount: parts[2].parse().ok(),
+                            }
+                        })
+                        .collect(),
                     prover_args: near_primitives::borsh::to_vec(&args).unwrap(),
                 })
                 .await
@@ -358,14 +401,14 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .unwrap();
         }
         OmniConnectorSubCommand::SolanaDeployToken {
-            transaction_hash,
+            tx_hash,
             sender_id,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .deploy_token(DeployTokenArgs::SolanaDeployTokenWithTxHash {
-                    near_tx_hash: transaction_hash.parse().unwrap(),
-                    sender_id: sender_id.map(|id| id.parse().unwrap()),
+                    near_tx_hash: tx_hash.parse().unwrap(),
+                    sender_id,
                 })
                 .await
                 .unwrap();
@@ -396,16 +439,16 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .unwrap();
         }
         OmniConnectorSubCommand::SolanaFinalizeTransfer {
-            transaction_hash,
+            tx_hash,
             sender_id,
             solana_token,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .fin_transfer(FinTransferArgs::SolanaFinTransferWithTxHash {
-                    near_tx_hash: transaction_hash.parse().unwrap(),
+                    near_tx_hash: tx_hash.parse().unwrap(),
                     solana_token: solana_token.parse().unwrap(),
-                    sender_id: sender_id.map(|id| id.parse().unwrap()),
+                    sender_id,
                 })
                 .await
                 .unwrap();
@@ -495,11 +538,7 @@ fn omni_connector(network: Network, cli_config: CliConfig) -> OmniConnector {
                 .solana_wormhole_address
                 .map(|addr| addr.parse().unwrap()),
         )
-        .keypair(
-            combined_config
-                .solana_keypair
-                .map(|keypair| extract_solana_keypair(keypair)),
-        )
+        .keypair(combined_config.solana_keypair.map(extract_solana_keypair))
         .build()
         .unwrap();
 
