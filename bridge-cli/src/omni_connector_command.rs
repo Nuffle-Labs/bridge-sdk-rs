@@ -115,7 +115,7 @@ pub enum OmniConnectorSubCommand {
     },
     #[clap(about = "Bind a token on EVM")]
     EvmBindToken {
-        #[clap(short, long, help = "Chain to bind the token from")]
+        #[clap(short, long, help = "Chain to bind the token on")]
         chain: ChainKind,
         #[clap(short, long, help = "Transaction hash of the DeployToken call on NEAR")]
         tx_hash: String,
