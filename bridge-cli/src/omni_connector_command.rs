@@ -225,6 +225,7 @@ pub enum OmniConnectorSubCommand {
     },
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
     match cmd {
         OmniConnectorSubCommand::LogMetadata { token, config_cli } => {
@@ -392,7 +393,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .solana_initialize(extract_solana_keypair(program_keypair))
+                .solana_initialize(extract_solana_keypair(&program_keypair))
                 .await
                 .unwrap();
         }
@@ -534,7 +535,12 @@ fn omni_connector(network: Network, cli_config: CliConfig) -> OmniConnector {
                 .solana_wormhole_address
                 .map(|addr| addr.parse().unwrap()),
         )
-        .keypair(combined_config.solana_keypair.map(extract_solana_keypair))
+        .keypair(
+            combined_config
+                .solana_keypair
+                .as_deref()
+                .map(extract_solana_keypair),
+        )
         .build()
         .unwrap();
 
@@ -554,10 +560,10 @@ fn omni_connector(network: Network, cli_config: CliConfig) -> OmniConnector {
         .unwrap()
 }
 
-fn extract_solana_keypair(keypair: String) -> Keypair {
-    if keypair.contains("/") || keypair.contains(".") {
+fn extract_solana_keypair(keypair: &str) -> Keypair {
+    if keypair.contains('/') || keypair.contains('.') {
         Keypair::read_from_file(Path::new(&keypair)).unwrap()
     } else {
-        Keypair::from_base58_string(&keypair)
+        Keypair::from_base58_string(keypair)
     }
 }

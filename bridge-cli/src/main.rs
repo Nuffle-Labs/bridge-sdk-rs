@@ -309,7 +309,7 @@ enum SubCommand {
     },
 }
 
-#[derive(ValueEnum, Clone, Debug)]
+#[derive(ValueEnum, Copy, Clone, Debug)]
 enum Network {
     Mainnet,
     Testnet,
@@ -331,24 +331,24 @@ async fn main() {
 
     match args.cmd {
         SubCommand::Nep141Connector { cmd } => {
-            nep141_connector_command::match_subcommand(cmd, args.network).await
+            nep141_connector_command::match_subcommand(cmd, args.network).await;
         }
         SubCommand::EthConnector { cmd } => {
-            eth_connector_command::match_subcommand(cmd, args.network).await
+            eth_connector_command::match_subcommand(cmd, args.network).await;
         }
         SubCommand::FastBridge { cmd } => {
-            fast_bridge_command::match_subcommand(cmd, args.network).await
+            fast_bridge_command::match_subcommand(cmd, args.network).await;
         }
         SubCommand::OmniConnector { cmd } => {
-            omni_connector_command::match_subcommand(cmd, args.network).await
+            omni_connector_command::match_subcommand(cmd, args.network).await;
         }
     }
 }
 
 fn init_logger() {
     let field_formatter = format::debug_fn(|writer, field, value| match field.name() {
-        "message" => write!(writer, "{:?}", value),
-        _ => write!(writer, "{}={:?}", field, value),
+        "message" => write!(writer, "{value:?}"),
+        _ => write!(writer, "{field}={value:?}"),
     })
     .display_messages()
     .delimited("\n");
