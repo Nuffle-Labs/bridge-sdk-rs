@@ -114,7 +114,12 @@ impl EthConnector {
             near_endpoint,
             ChangeRequest {
                 method_name: "deposit".to_string(),
-                receiver_id: self.eth_connector_account_id()?.to_string(),
+                receiver_id: self.eth_connector_account_id()?.parse().map_err(|err| {
+                    BridgeSdkError::ConfigError(format!(
+                        "Failed to parse eth_connector_account_id as AccountId: {}",
+                        err
+                    ))
+                })?,
                 args,
                 gas: 300_000_000_000_000,
                 deposit: 0,
@@ -150,7 +155,12 @@ impl EthConnector {
             near_endpoint,
             ChangeRequest {
                 method_name: "withdraw".to_string(),
-                receiver_id: eth_connector_account_id,
+                receiver_id: eth_connector_account_id.parse().map_err(|err| {
+                    BridgeSdkError::ConfigError(format!(
+                        "Failed to parse eth_connector_account_id as AccountId: {}",
+                        err
+                    ))
+                })?,
                 args,
                 gas: 300_000_000_000_000,
                 deposit: 1,

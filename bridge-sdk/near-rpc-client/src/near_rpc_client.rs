@@ -32,7 +32,7 @@ pub struct ViewRequest {
 #[derive(Clone)]
 pub struct ChangeRequest {
     pub signer: near_crypto::InMemorySigner,
-    pub receiver_id: String,
+    pub receiver_id: AccountId,
     pub method_name: String,
     pub args: Vec<u8>,
     pub gas: u64,
@@ -161,7 +161,7 @@ pub async fn change(
         signer_id: change_request.signer.account_id.clone(),
         public_key: change_request.signer.public_key.clone(),
         nonce: current_nonce + 1,
-        receiver_id: change_request.receiver_id.parse().unwrap(),
+        receiver_id: change_request.receiver_id,
         block_hash: access_key_query_response.block_hash,
         actions: vec![Action::FunctionCall(Box::new(FunctionCallAction {
             method_name: change_request.method_name,

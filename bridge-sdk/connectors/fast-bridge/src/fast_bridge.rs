@@ -109,7 +109,9 @@ impl FastBridge {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: fast_bridge_account_id,
+                receiver_id: fast_bridge_account_id.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid fast bridge account id".to_string())
+                })?,
                 method_name: "transfer".to_string(),
                 args,
                 gas: 20_000_000_000_000,
@@ -183,7 +185,9 @@ impl FastBridge {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: self.fast_bridge_account_id()?.to_string(),
+                receiver_id: self.fast_bridge_account_id()?.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid fast bridge account id".to_string())
+                })?,
                 method_name: "lp_unlock".to_string(),
                 args,
                 gas: 120_000_000_000_000,
@@ -229,7 +233,9 @@ impl FastBridge {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: self.fast_bridge_account_id()?.to_string(),
+                receiver_id: self.fast_bridge_account_id()?.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid fast bridge account id".to_string())
+                })?,
                 method_name: "withdraw".to_string(),
                 args,
                 gas: 20_000_000_000_000,
