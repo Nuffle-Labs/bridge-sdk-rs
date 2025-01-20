@@ -84,7 +84,7 @@ pub enum OmniConnectorSubCommand {
         token: String,
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long, help = "Recipient account ID on the other chain")]
+        #[clap(short, long, help = "Recipient address on the destination chain")]
         recipient: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -115,7 +115,7 @@ pub enum OmniConnectorSubCommand {
     },
     #[clap(about = "Bind a token on EVM")]
     EvmBindToken {
-        #[clap(short, long, help = "Chain to bind the token on")]
+        #[clap(short, long, help = "Chain to bind the token from")]
         chain: ChainKind,
         #[clap(short, long, help = "Transaction hash of the DeployToken call on NEAR")]
         tx_hash: String,
@@ -158,7 +158,7 @@ pub enum OmniConnectorSubCommand {
         #[clap(
             short,
             long,
-            help = "Keypair (private_key) for the program or path to the file containing keypair"
+            help = "Solana keypair in Base58 or path to a .json keypair file"
         )]
         program_keypair: String,
         #[command(flatten)]
@@ -179,7 +179,7 @@ pub enum OmniConnectorSubCommand {
         token: String,
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long, help = "Recipient account ID on the other chain")]
+        #[clap(short, long, help = "Recipient address on the destination chain")]
         recipient: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -188,7 +188,7 @@ pub enum OmniConnectorSubCommand {
     SolanaInitTransferSol {
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long, help = "Recipient account ID on the other chain")]
+        #[clap(short, long, help = "Recipient address on the destination chain")]
         recipient: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -216,7 +216,7 @@ pub enum OmniConnectorSubCommand {
 
     #[clap(about = "Bind a token on a chain that supports Wormhole")]
     WormholeBindToken {
-        #[clap(short, long, help = "Origin chain of the token to bind")]
+        #[clap(short, long, help = "Chain to bind the token from")]
         chain: ChainKind,
         #[clap(short, long, help = "VAA from DeployToken call")]
         vaa: String,
