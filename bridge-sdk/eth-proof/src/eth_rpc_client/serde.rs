@@ -9,7 +9,7 @@ impl<'de> Deserialize<'de> for Bytes {
         let s = extract_hex_string(deserializer)?;
 
         let vec: Vec<u8> =
-            hex::decode(&s).map_err(|_| de::Error::custom(format!("Invalid hex string: {}", s)))?;
+            hex::decode(&s).map_err(|_| de::Error::custom(format!("Invalid hex string: {s}")))?;
 
         Ok(Self(vec))
     }
@@ -23,7 +23,7 @@ impl<'de> Deserialize<'de> for U8 {
         let s = extract_hex_string(deserializer)?;
 
         let byte = u8::from_str_radix(&s, 16)
-            .map_err(|_| de::Error::custom(format!("Invalid hex string: {}", s)))?;
+            .map_err(|_| de::Error::custom(format!("Invalid hex string: {s}")))?;
 
         Ok(Self(byte))
     }
@@ -41,8 +41,7 @@ where
         })
     } else {
         Err(de::Error::custom(format!(
-            "Hex string must start with 0x: {}",
-            s
+            "Hex string must start with 0x: {s}"
         )))
     }
 }

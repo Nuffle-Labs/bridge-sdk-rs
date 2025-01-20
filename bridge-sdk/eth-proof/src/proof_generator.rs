@@ -12,6 +12,10 @@ use omni_types::prover_args::EvmProof;
 use rlp::RlpStream;
 use std::sync::Arc;
 
+/// Generates a proof for a specific event in the Ethereum blockchain
+///
+/// # Errors
+/// Returns an error if the proof generation fails
 pub async fn get_proof_for_event(
     tx_hash: H256,
     topic: H256,

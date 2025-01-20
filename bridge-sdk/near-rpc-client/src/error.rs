@@ -7,6 +7,7 @@ use near_jsonrpc_client::{
 };
 use near_jsonrpc_primitives::types::light_client::RpcLightClientProofError;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(thiserror::Error, Debug)]
 #[error("Near RPC error: {0}")]
 pub enum NearRpcError {

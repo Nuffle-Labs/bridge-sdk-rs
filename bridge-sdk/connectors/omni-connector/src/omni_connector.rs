@@ -83,13 +83,13 @@ pub enum InitTransferArgs {
     NearInitTransfer {
         token: String,
         amount: u128,
-        receiver: String,
+        recipient: String,
     },
     EvmInitTransfer {
         chain_kind: ChainKind,
         token: String,
         amount: u128,
-        receiver: String,
+        recipient: String,
         fee: Fee,
     },
     SolanaInitTransfer {
@@ -667,7 +667,7 @@ impl OmniConnector {
             InitTransferArgs::NearInitTransfer {
                 token: near_token_id,
                 amount,
-                receiver,
+                recipient: receiver,
             } => self
                 .near_init_transfer(near_token_id, amount, receiver)
                 .await
@@ -676,7 +676,7 @@ impl OmniConnector {
                 chain_kind,
                 token: near_token_id,
                 amount,
-                receiver,
+                recipient: receiver,
                 fee,
             } => self
                 .evm_init_transfer(chain_kind, near_token_id, amount, receiver, fee)
