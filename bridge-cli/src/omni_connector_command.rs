@@ -22,7 +22,7 @@ use crate::{combined_config, CliConfig, Network};
 pub enum OmniConnectorSubCommand {
     #[clap(about = "Log metadata for a token")]
     LogMetadata {
-        #[clap(short, long, help = "Token address to logging metadata")]
+        #[clap(short, long, help = "Token address to log metadata")]
         token: OmniAddress,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -99,7 +99,7 @@ pub enum OmniConnectorSubCommand {
             help = "Storage deposit actions. Format: token_id1:account_id1:amount1,token_id2:account_id2:amount2,..."
         )]
         storage_deposit_actions: Vec<String>,
-        #[clap(short, long, help = "VAA from init transfer transaction")]
+        #[clap(short, long, help = "VAA from InitTransfer call")]
         vaa: String,
         #[command(flatten)]
         config_cli: CliConfig,
@@ -218,7 +218,7 @@ pub enum OmniConnectorSubCommand {
     WormholeBindToken {
         #[clap(short, long, help = "Origin chain of the token to bind")]
         chain: ChainKind,
-        #[clap(short, long, help = "VAA from deploy token transaction")]
+        #[clap(short, long, help = "VAA from DeployToken call")]
         vaa: String,
         #[command(flatten)]
         config_cli: CliConfig,
