@@ -32,7 +32,7 @@ pub struct ViewRequest {
 #[derive(Clone)]
 pub struct ChangeRequest {
     pub signer: near_crypto::InMemorySigner,
-    pub receiver_id: String,
+    pub receiver_id: AccountId,
     pub method_name: String,
     pub args: Vec<u8>,
     pub gas: u64,
@@ -50,6 +50,10 @@ fn new_near_rpc_client(timeout: Option<std::time::Duration>) -> reqwest::Client 
     builder.build().unwrap()
 }
 
+/// Returns the result of the view call
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn view(server_addr: &str, view_request: ViewRequest) -> Result<Vec<u8>, NearRpcError> {
     let client = DEFAULT_CONNECTOR.connect(server_addr);
     let request = methods::query::RpcQueryRequest {
@@ -69,6 +73,10 @@ pub async fn view(server_addr: &str, view_request: ViewRequest) -> Result<Vec<u8
     }
 }
 
+/// Returns the light client proof
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn get_light_client_proof(
     server_addr: &str,
     id: near_primitives::types::TransactionOrReceiptId,
@@ -85,6 +93,10 @@ pub async fn get_light_client_proof(
     Ok(client.call(request).await?.into())
 }
 
+/// Returns the final block timestamp
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn get_final_block_timestamp(server_addr: &str) -> Result<u64, NearRpcError> {
     let client = DEFAULT_CONNECTOR.connect(server_addr);
     let request = methods::block::RpcBlockRequest {
@@ -95,6 +107,10 @@ pub async fn get_final_block_timestamp(server_addr: &str) -> Result<u64, NearRpc
     Ok(block_info.header.timestamp)
 }
 
+/// Returns the last block height
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn get_last_near_block_height(server_addr: &str) -> Result<u64, NearRpcError> {
     let client = DEFAULT_CONNECTOR.connect(server_addr);
     let request = methods::block::RpcBlockRequest {
@@ -105,6 +121,10 @@ pub async fn get_last_near_block_height(server_addr: &str) -> Result<u64, NearRp
     Ok(block_info.header.height)
 }
 
+/// Returns the block info by reference
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn get_block(
     server_addr: &str,
     block_reference: BlockReference,
@@ -115,6 +135,10 @@ pub async fn get_block(
     Ok(block_info)
 }
 
+/// Calls the rpc method that requires change of the state
+///
+/// # Errors
+/// Returns an error if the change call fails
 pub async fn change(
     server_addr: &str,
     change_request: ChangeRequest,
@@ -137,7 +161,7 @@ pub async fn change(
         signer_id: change_request.signer.account_id.clone(),
         public_key: change_request.signer.public_key.clone(),
         nonce: current_nonce + 1,
-        receiver_id: change_request.receiver_id.parse().unwrap(),
+        receiver_id: change_request.receiver_id,
         block_hash: access_key_query_response.block_hash,
         actions: vec![Action::FunctionCall(Box::new(FunctionCallAction {
             method_name: change_request.method_name,
@@ -153,6 +177,10 @@ pub async fn change(
     Ok(client.call(request).await?)
 }
 
+/// Returns the result of the view call and waits for the desired outcome
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn change_and_wait(
     server_addr: &str,
     change_request: ChangeRequest,
@@ -170,6 +198,10 @@ pub async fn change_and_wait(
     .await
 }
 
+/// Returns the result of the view call and waits for the desired outcome
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn wait_for_tx(
     server_addr: &str,
     hash: CryptoHash,
@@ -215,6 +247,10 @@ pub async fn wait_for_tx(
     }
 }
 
+/// Returns the final outcome of the transaction
+///
+/// # Errors
+/// Returns an error if the view call fails
 pub async fn get_tx_final_outcome(
     server_addr: &str,
     hash: CryptoHash,

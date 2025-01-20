@@ -21,6 +21,7 @@ pub struct NearOnEthClient {
 }
 
 impl NearOnEthClient {
+    #[must_use]
     pub fn new(near_one_eth_client_address: Address, eth_rpc_endpoint: String) -> Self {
         Self {
             eth_endpoint: eth_rpc_endpoint,
@@ -28,6 +29,10 @@ impl NearOnEthClient {
         }
     }
 
+    /// Get the current sync height of the Near Light Client on Ethereum
+    ///
+    /// # Errors
+    /// Returns an error if the Ethereum RPC client fails to connect
     pub async fn get_sync_height(&self) -> Result<u64, NearLightClientOnEthError> {
         let eth_provider = self.eth_provider()?;
         let client = Arc::new(eth_provider);
@@ -38,6 +43,10 @@ impl NearOnEthClient {
         Ok(state.0.as_u64())
     }
 
+    /// Get the block hash for a specific block number
+    ///
+    /// # Errors
+    /// Returns an error if the Ethereum RPC client fails to connect
     pub async fn get_block_hash(
         &self,
         block_number: u64,
@@ -77,7 +86,7 @@ mod tests {
         let client = NearOnEthClient::new(near_on_eth_client_address, eth_rpc_endpoint);
 
         let sync_height = client.get_sync_height().await.unwrap();
-        assert!(sync_height > 165638532);
+        assert!(sync_height > 165_638_532);
     }
 
     #[tokio::test]
@@ -85,7 +94,7 @@ mod tests {
         let (eth_rpc_endpoint, near_on_eth_client_address) = get_config();
         let client = NearOnEthClient::new(near_on_eth_client_address, eth_rpc_endpoint);
 
-        let block_hash = client.get_block_hash(164243835).await.unwrap();
+        let block_hash = client.get_block_hash(164_243_835).await.unwrap();
         assert_eq!(
             block_hash,
             [

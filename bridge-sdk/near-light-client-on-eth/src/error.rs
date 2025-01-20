@@ -3,6 +3,7 @@ use ethers::{
     providers::{Http, Provider},
 };
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(thiserror::Error, Debug)]
 pub enum NearLightClientOnEthError {
     #[error("Configuration error: {0}")]

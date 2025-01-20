@@ -1,6 +1,7 @@
 use crate::eth_rpc_client::EthClientError;
 use cita_trie::TrieError;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(thiserror::Error, Debug)]
 pub enum EthProofError {
     #[error("Could not build a merkle trie for the proof: {0}")]

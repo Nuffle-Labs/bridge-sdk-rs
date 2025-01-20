@@ -57,7 +57,7 @@ pub struct NearBridgeClient {
 impl NearBridgeClient {
     pub async fn get_token_id(&self, token_address: OmniAddress) -> Result<AccountId> {
         let endpoint = self.endpoint()?;
-        let token_id = self.token_locker_id_as_account_id()?;
+        let token_id = self.token_locker_id()?;
 
         let response = near_rpc_client::view(
             endpoint,
@@ -78,7 +78,7 @@ impl NearBridgeClient {
 
     pub async fn get_native_token_id(&self, origin_chain: ChainKind) -> Result<AccountId> {
         let endpoint = self.endpoint()?;
-        let token_id = self.token_locker_id_as_account_id()?;
+        let token_id = self.token_locker_id()?;
 
         let response = near_rpc_client::view(
             endpoint,
@@ -123,7 +123,7 @@ impl NearBridgeClient {
 
     pub async fn get_required_balance_for_account(&self) -> Result<u128> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_account_id()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let response = near_rpc_client::view(
             endpoint,
@@ -176,13 +176,15 @@ impl NearBridgeClient {
         amount: u128,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker = self.token_locker_id_as_str()?;
+        let token_locker = self.token_locker_id()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_id,
+                receiver_id: token_id.parse().map_err(|err| {
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                })?,
                 method_name: "storage_deposit".to_string(),
                 args: serde_json::json!({
                     "account_id": token_locker
@@ -206,13 +208,13 @@ impl NearBridgeClient {
 
     pub async fn storage_deposit(&self, amount: u128) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_str()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_locker_id.to_string(),
+                receiver_id: token_locker_id,
                 method_name: "storage_deposit".to_string(),
                 args: json!({
                     "account_id": None::<AccountId>
@@ -243,7 +245,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: self.token_locker_id_as_str()?.to_string(),
+                receiver_id: self.token_locker_id()?,
                 method_name: "log_metadata".to_string(),
                 args: serde_json::json!({
                     "token_id": token_id
@@ -269,7 +271,7 @@ impl NearBridgeClient {
         vaa: &str,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_str()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let prover_args = omni_types::prover_args::WormholeVerifyProofArgs {
             proof_kind: omni_types::prover_result::ProofKind::LogMetadata,
@@ -285,7 +287,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_locker_id.to_string(),
+                receiver_id: token_locker_id,
                 method_name: "deploy_token".to_string(),
                 args: borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
                 gas: DEPLOY_TOKEN_GAS,
@@ -306,13 +308,13 @@ impl NearBridgeClient {
     /// Deploys a token on the target chain using the evm proof
     pub async fn deploy_token_with_evm_proof(&self, args: DeployTokenArgs) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_str()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_locker_id.to_string(),
+                receiver_id: token_locker_id,
                 method_name: "deploy_token".to_string(),
                 args: borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
                 gas: DEPLOY_TOKEN_GAS,
@@ -334,13 +336,13 @@ impl NearBridgeClient {
     #[tracing::instrument(skip_all, name = "BIND TOKEN")]
     pub async fn bind_token(&self, args: BindTokenArgs) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_str()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_locker_id.to_string(),
+                receiver_id: token_locker_id,
                 method_name: "bind_token".to_string(),
                 args: borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
                 gas: BIND_TOKEN_GAS,
@@ -363,7 +365,7 @@ impl NearBridgeClient {
         fee: Option<Fee>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_account_id()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let response = near_rpc_client::view(
             endpoint,
@@ -394,7 +396,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: self.token_locker_id_as_str()?.to_string(),
+                receiver_id: self.token_locker_id()?,
                 method_name: "sign_transfer".to_string(),
                 args: serde_json::json!({
                     "transfer_id": transfer_id,
@@ -424,7 +426,7 @@ impl NearBridgeClient {
         sender: &str,
     ) -> Result<u128> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_account_id()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let response = near_rpc_client::view(
             endpoint,
@@ -452,14 +454,14 @@ impl NearBridgeClient {
         receiver: String,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker = self.token_locker_id_as_str()?;
+        let token_locker = self.token_locker_id()?;
 
         let required_balance = self
             .get_required_balance_for_init_transfer(&receiver, self.account_id()?.as_str())
             .await?
             + self.get_required_balance_for_account().await?;
         let existing_balance = self
-            .get_storage_balance(self.token_locker_id_as_account_id()?, self.account_id()?)
+            .get_storage_balance(token_locker.clone(), self.account_id()?)
             .await?;
 
         if existing_balance < required_balance {
@@ -474,7 +476,9 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_id,
+                receiver_id: token_id.parse().map_err(|err| {
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                })?,
                 method_name: "ft_transfer_call".to_string(),
                 args: serde_json::json!({
                     "receiver_id": token_locker,
@@ -507,7 +511,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: self.token_locker_id_as_str()?.to_string(),
+                receiver_id: self.token_locker_id()?,
                 method_name: "fin_transfer".to_string(),
                 args: borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
                 gas: FIN_TRANSFER_GAS,
@@ -528,13 +532,13 @@ impl NearBridgeClient {
     #[tracing::instrument(skip_all, name = "CLAIM FEE")]
     pub async fn claim_fee(&self, args: ClaimFeeArgs) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
-        let token_locker_id = self.token_locker_id_as_str()?;
+        let token_locker_id = self.token_locker_id()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
-                receiver_id: token_locker_id.to_string(),
+                receiver_id: token_locker_id,
                 method_name: "claim_fee".to_string(),
                 args: borsh::to_vec(&args).map_err(|_| BridgeSdkError::UnknownError)?,
                 gas: CLAIM_FEE_GAS,
@@ -617,17 +621,12 @@ impl NearBridgeClient {
         ))
     }
 
-    pub fn token_locker_id_as_str(&self) -> Result<&str> {
-        Ok(self
-            .token_locker_id
+    pub fn token_locker_id(&self) -> Result<AccountId> {
+        self.token_locker_id
             .as_ref()
             .ok_or(BridgeSdkError::ConfigError(
                 "Token locker account id is not set".to_string(),
-            ))?)
-    }
-
-    pub fn token_locker_id_as_account_id(&self) -> Result<AccountId> {
-        self.token_locker_id_as_str()?
+            ))?
             .parse::<AccountId>()
             .map_err(|_| BridgeSdkError::ConfigError("Invalid token locker account id".to_string()))
     }

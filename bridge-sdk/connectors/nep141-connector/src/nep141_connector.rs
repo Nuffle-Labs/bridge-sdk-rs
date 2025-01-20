@@ -69,7 +69,9 @@ impl Nep141Connector {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: self.token_locker_id()?.to_string(),
+                receiver_id: self.token_locker_id()?.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid token locker account id".to_string())
+                })?,
                 method_name: "log_metadata".to_string(),
                 args,
                 gas: 300_000_000_000_000,
@@ -99,7 +101,9 @@ impl Nep141Connector {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: near_token_id,
+                receiver_id: near_token_id.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid NEP-141 token account id".to_string())
+                })?,
                 method_name: "storage_deposit".to_string(),
                 args,
                 gas: 300_000_000_000_000,
@@ -184,7 +188,9 @@ impl Nep141Connector {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: near_token_id,
+                receiver_id: near_token_id.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid NEP-141 token account id".to_string())
+                })?,
                 method_name: "ft_transfer_call".to_string(),
                 args,
                 gas: 300_000_000_000_000,
@@ -325,7 +331,9 @@ impl Nep141Connector {
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
-                receiver_id: self.token_locker_id()?.to_string(),
+                receiver_id: self.token_locker_id()?.parse().map_err(|_| {
+                    BridgeSdkError::ConfigError("Invalid token locker account id".to_string())
+                })?,
                 method_name: "withdraw".to_string(),
                 args,
                 gas: 300_000_000_000_000,

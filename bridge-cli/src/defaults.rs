@@ -13,11 +13,13 @@ pub const ETH_CUSTODIAN_ADDRESS_MAINNET: &str = "0x6BFaD42cFC4EfC96f529D786D643F
 
 pub const BASE_RPC_MAINNET: &str = "https://base.llamarpc.com";
 pub const BASE_CHAIN_ID_MAINNET: u64 = 8453;
-pub const BASE_BRIDGE_TOKEN_FACTORY_ADDRESS_MAINNET: &str = "0xd025b38762B4A4E36F0Cde483b86CB13ea00D989";
+pub const BASE_BRIDGE_TOKEN_FACTORY_ADDRESS_MAINNET: &str =
+    "0xd025b38762B4A4E36F0Cde483b86CB13ea00D989";
 
 pub const ARB_RPC_MAINNET: &str = "https://arbitrum.llamarpc.com";
-pub const ARB_CHAIN_ID_MAINNET: u64 = 42161;
-pub const ARB_BRIDGE_TOKEN_FACTORY_ADDRESS_MAINNET: &str = "0xd025b38762B4A4E36F0Cde483b86CB13ea00D989";
+pub const ARB_CHAIN_ID_MAINNET: u64 = 42_161;
+pub const ARB_BRIDGE_TOKEN_FACTORY_ADDRESS_MAINNET: &str =
+    "0xd025b38762B4A4E36F0Cde483b86CB13ea00D989";
 
 pub const SOLANA_RPC_MAINNET: &str = "https://api.mainnet-beta.solana.com";
 pub const SOLANA_BRIDGE_ADDRESS_MAINNET: &str = "dahPEoZGXfyV58JqqH85okdHmpN8U2q8owgPUXSCPxe";
@@ -33,19 +35,19 @@ pub const NEAR_LIGHT_CLIENT_ETH_ADDRESS_TESTNET: &str =
     "0x202cdf10bfa45a3d2190901373edd864f071d707";
 
 pub const ETH_RPC_TESTNET: &str = "https://ethereum-sepolia.blockpi.network/v1/rpc/public";
-pub const ETH_CHAIN_ID_TESTNET: u64 = 11155111;
+pub const ETH_CHAIN_ID_TESTNET: u64 = 11_155_111;
 pub const ETH_BRIDGE_TOKEN_FACTORY_ADDRESS_TESTNET: &str =
     "0xa9108f7F83Fb661e611991116D526fCa1a9585ab";
 pub const ETH_CONNECTOR_ACCOUNT_ID_TESTNET: &str = "aurora";
 pub const ETH_CUSTODIAN_ADDRESS_TESTNET: &str = "0xe0320b199863D7f6D5bBa62741aACB312110DEf7";
 
 pub const BASE_RPC_TESTNET: &str = "https://base-sepolia.blockpi.network/v1/rpc/public";
-pub const BASE_CHAIN_ID_TESTNET: u64 = 84532;
+pub const BASE_CHAIN_ID_TESTNET: u64 = 84_532;
 pub const BASE_BRIDGE_TOKEN_FACTORY_ADDRESS_TESTNET: &str =
     "0x0C981337fFe39a555d3A40dbb32f21aD0eF33FFA";
 
 pub const ARB_RPC_TESTNET: &str = "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
-pub const ARB_CHAIN_ID_TESTNET: u64 = 421614;
+pub const ARB_CHAIN_ID_TESTNET: u64 = 421_614;
 pub const ARB_BRIDGE_TOKEN_FACTORY_ADDRESS_TESTNET: &str =
     "0xd565f7CcE0FA1bB8DBe73FCDA281390d545f6200";
 
