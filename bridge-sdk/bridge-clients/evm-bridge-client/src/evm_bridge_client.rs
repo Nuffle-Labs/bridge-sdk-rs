@@ -219,7 +219,7 @@ impl EvmBridgeClient {
         let endpoint = self.endpoint()?;
 
         let event_signature = match proof_kind {
-            ProofKind::DeployToken => "DeployToken(address,string,string,string,uint8)",
+            ProofKind::DeployToken => "DeployToken(address,string,string,string,uint8,uint8)",
             ProofKind::InitTransfer => {
                 "InitTransfer(address,address,uint64,uint128,uint128,uint128,string,string)"
             }
