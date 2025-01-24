@@ -70,6 +70,9 @@ pub enum DeployTokenArgs {
 }
 
 pub enum BindTokenArgs {
+    BindTokenWithArgs {
+        args: omni_types::locker_args::BindTokenArgs,
+    },
     BindTokenWithEvmProofTx {
         chain_kind: ChainKind,
         tx_hash: TxHash,
@@ -691,6 +694,10 @@ impl OmniConnector {
 
     pub async fn bind_token(&self, bind_token_args: BindTokenArgs) -> Result<String> {
         match bind_token_args {
+            BindTokenArgs::BindTokenWithArgs { args } => self
+                .near_bind_token(args)
+                .await
+                .map(|hash| hash.to_string()),
             BindTokenArgs::BindTokenWithEvmProofTx {
                 chain_kind,
                 tx_hash,
