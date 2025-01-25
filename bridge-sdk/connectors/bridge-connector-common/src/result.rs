@@ -45,7 +45,9 @@ impl From<SolanaBridgeClientError> for BridgeSdkError {
             SolanaBridgeClientError::RpcError(e) => Self::SolanaRpcError(e),
             SolanaBridgeClientError::ConfigError(e) => Self::ConfigError(e),
             SolanaBridgeClientError::InvalidAccountData(e) => Self::SolanaOtherError(e),
-            SolanaBridgeClientError::InvalidEvent => Self::SolanaOtherError("Invalid event".to_string()),
+            SolanaBridgeClientError::InvalidEvent => {
+                Self::SolanaOtherError("Invalid event".to_string())
+            }
         }
     }
 }

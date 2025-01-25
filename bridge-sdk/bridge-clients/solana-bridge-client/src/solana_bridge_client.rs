@@ -500,7 +500,9 @@ impl SolanaBridgeClient {
             .await
     }
 
-    async fn get_wormhole_accounts(&self) -> Result<(Pubkey, Pubkey, Pubkey), SolanaBridgeClientError> {
+    async fn get_wormhole_accounts(
+        &self,
+    ) -> Result<(Pubkey, Pubkey, Pubkey), SolanaBridgeClientError> {
         let program_id = self.program_id()?;
         let wormhole_core = self.wormhole_core()?;
 
@@ -534,7 +536,10 @@ impl SolanaBridgeClient {
         Ok(signature)
     }
 
-    async fn get_token_owner(&self, token: Pubkey) -> Result<COption<Pubkey>, SolanaBridgeClientError> {
+    async fn get_token_owner(
+        &self,
+        token: Pubkey,
+    ) -> Result<COption<Pubkey>, SolanaBridgeClientError> {
         let client = self.client()?;
 
         let mint_account = client.get_account(&token).await?;
@@ -546,9 +551,11 @@ impl SolanaBridgeClient {
     }
 
     pub fn client(&self) -> Result<&RpcClient, SolanaBridgeClientError> {
-        self.client.as_ref().ok_or(SolanaBridgeClientError::ConfigError(
-            "Client not initialized".to_string(),
-        ))
+        self.client
+            .as_ref()
+            .ok_or(SolanaBridgeClientError::ConfigError(
+                "Client not initialized".to_string(),
+            ))
     }
 
     pub fn program_id(&self) -> Result<&Pubkey, SolanaBridgeClientError> {
@@ -568,8 +575,10 @@ impl SolanaBridgeClient {
     }
 
     pub fn keypair(&self) -> Result<&Keypair, SolanaBridgeClientError> {
-        self.keypair.as_ref().ok_or(SolanaBridgeClientError::ConfigError(
-            "Keypair not initialized".to_string(),
-        ))
+        self.keypair
+            .as_ref()
+            .ok_or(SolanaBridgeClientError::ConfigError(
+                "Keypair not initialized".to_string(),
+            ))
     }
 }
