@@ -49,7 +49,7 @@ pub const BASE_BRIDGE_TOKEN_FACTORY_ADDRESS_TESTNET: &str =
 pub const ARB_RPC_TESTNET: &str = "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
 pub const ARB_CHAIN_ID_TESTNET: u64 = 421_614;
 pub const ARB_BRIDGE_TOKEN_FACTORY_ADDRESS_TESTNET: &str =
-    "0xd565f7CcE0FA1bB8DBe73FCDA281390d545f6200";
+    "0xd025b38762B4A4E36F0Cde483b86CB13ea00D989";
 
 pub const SOLANA_RPC_TESTNET: &str = "https://api.devnet.solana.com";
 pub const SOLANA_BRIDGE_ADDRESS_TESTNET: &str = "Gy1XPwYZURfBzHiGAxnw3SYC33SfqsEpGSS5zeBge28p";
@@ -58,4 +58,4 @@ pub const SOLANA_WORMHOLE_ADDRESS_TESTNET: &str = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H6
 pub const FAST_BRIDGE_ACCOUNT_ID_TESTNET: &str = "fastbridge.testnet";
 pub const FAST_BRIDGE_ADDRESS_TESTNET: &str = "0x0B2C4871C9bAD795746C05c1539A8B1f26c26357";
 
-pub const WORMHOLE_API: &str = "https://api.wormholescan.io";
+pub const WORMHOLE_API: &str = "https://api.testnet.wormholescan.io";
