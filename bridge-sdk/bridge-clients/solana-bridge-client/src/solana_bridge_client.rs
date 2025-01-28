@@ -1,7 +1,7 @@
-use anchor_lang::solana_program::hash::hash;
 use borsh::{BorshDeserialize, BorshSerialize};
 use derive_builder::Builder;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_program::hash::hash;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_option::COption,
