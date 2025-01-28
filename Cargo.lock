@@ -6309,7 +6309,6 @@ dependencies = [
  "mpl-token-metadata",
  "sha2 0.10.8",
  "solana-client",
- "solana-program",
  "solana-sdk",
  "spl-associated-token-account",
  "spl-token 7.0.0",

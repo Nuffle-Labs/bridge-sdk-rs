@@ -8,7 +8,6 @@ derive_builder.workspace = true
 borsh.workspace = true
 sha2.workspace = true
 solana-client.workspace = true
-solana-program.workspace = true
 solana-sdk.workspace = true
 mpl-token-metadata.workspace = true
 spl-token.workspace = true

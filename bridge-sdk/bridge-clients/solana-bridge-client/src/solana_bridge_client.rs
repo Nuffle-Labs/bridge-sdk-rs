@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use derive_builder::Builder;
+use sha2::{Digest, Sha256};
 use solana_client::nonblocking::rpc_client::RpcClient;
-use solana_program::hash::hash;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     program_option::COption,
@@ -181,12 +181,13 @@ impl SolanaBridgeClient {
         let (config, _) = Pubkey::find_program_address(&[b"config"], program_id);
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], program_id);
 
-        let token = if data.metadata.token.len() > 32 {
-            &hash(data.metadata.token.as_bytes()).to_bytes()
+        let mut token = [0u8; 32];
+        if data.metadata.token.len() > 32 {
+            token.copy_from_slice(&Sha256::digest(data.metadata.token.as_bytes()))
         } else {
-            data.metadata.token.as_bytes()
-        };
-        let (mint, _) = Pubkey::find_program_address(&[b"wrapped_mint", token], program_id);
+            token.copy_from_slice(data.metadata.token.as_bytes())
+        }
+        let (mint, _) = Pubkey::find_program_address(&[b"wrapped_mint", &token], program_id);
 
         let metadata_program_id: Pubkey = mpl_token_metadata::ID.to_bytes().into();
         let (metadata, _) = Pubkey::find_program_address(
