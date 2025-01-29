@@ -383,9 +383,7 @@ impl OmniConnector {
             .await?;
 
         evm_bridge_client
-            .deploy_token(
-                serde_json::from_str(&transfer_log).map_err(|_| BridgeSdkError::UnknownError)?,
-            )
+            .deploy_token(serde_json::from_str(&transfer_log)?)
             .await
     }
 
@@ -425,9 +423,7 @@ impl OmniConnector {
             .await?;
 
         evm_bridge_client
-            .fin_transfer(
-                serde_json::from_str(&transfer_log).map_err(|_| BridgeSdkError::UnknownError)?,
-            )
+            .fin_transfer(serde_json::from_str(&transfer_log)?)
             .await
     }
 
@@ -478,12 +474,10 @@ impl OmniConnector {
             .extract_transfer_log(near_tx_hash, sender_id, "LogMetadataEvent")
             .await?;
 
-        self.solana_deploy_token_with_event(
-            serde_json::from_str(&transfer_log).map_err(|_| BridgeSdkError::UnknownError)?,
-        )
-        .await
-        // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
-        .map_err(|_| BridgeSdkError::UnknownError)
+        self.solana_deploy_token_with_event(serde_json::from_str(&transfer_log)?)
+            .await
+            // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
+            .map_err(|_| BridgeSdkError::UnknownError)
     }
 
     pub async fn solana_deploy_token_with_event(
@@ -571,13 +565,10 @@ impl OmniConnector {
             .extract_transfer_log(near_tx_hash, sender_id, "SignTransferEvent")
             .await?;
 
-        self.solana_finalize_transfer_with_event(
-            serde_json::from_str(&transfer_log).map_err(|_| BridgeSdkError::UnknownError)?,
-            solana_token,
-        )
-        .await
-        // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
-        .map_err(|_| BridgeSdkError::UnknownError)
+        self.solana_finalize_transfer_with_event(serde_json::from_str(&transfer_log)?, solana_token)
+            .await
+            // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
+            .map_err(|_| BridgeSdkError::UnknownError)
     }
 
     pub async fn solana_finalize_transfer_with_event(

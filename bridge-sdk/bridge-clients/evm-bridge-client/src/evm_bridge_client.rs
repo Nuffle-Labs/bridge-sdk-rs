@@ -76,7 +76,10 @@ impl EvmBridgeClient {
             metadata_payload,
         } = transfer_log
         else {
-            return Err(BridgeSdkError::UnknownError);
+            return Err(BridgeSdkError::InvalidArgument(format!(
+                "Expected LogMetadataEvent but got {:?}",
+                transfer_log
+            )));
         };
 
         let payload = MetadataPayload {
@@ -177,7 +180,10 @@ impl EvmBridgeClient {
             signature,
         } = transfer_log
         else {
-            return Err(BridgeSdkError::UnknownError);
+            return Err(BridgeSdkError::InvalidArgument(format!(
+                "Expected SignTransferEvent but got {:?}",
+                transfer_log
+            )));
         };
 
         let bridge_deposit = TransferMessagePayload {
@@ -188,14 +194,24 @@ impl EvmBridgeClient {
                 OmniAddress::Eth(addr) | OmniAddress::Base(addr) | OmniAddress::Arb(addr) => {
                     addr.0.into()
                 }
-                _ => return Err(BridgeSdkError::UnknownError),
+                _ => {
+                    return Err(BridgeSdkError::InvalidArgument(format!(
+                        "Unsupported token address type in SignTransferEvent: {:?}",
+                        message_payload.token_address
+                    )))
+                }
             },
             amount: message_payload.amount.into(),
             recipient: match message_payload.recipient {
                 OmniAddress::Eth(addr) | OmniAddress::Base(addr) | OmniAddress::Arb(addr) => {
                     H160(addr.0)
                 }
-                _ => return Err(BridgeSdkError::UnknownError),
+                _ => {
+                    return Err(BridgeSdkError::InvalidArgument(format!(
+                        "Unsupported recipient address type in SignTransferEvent: {:?}",
+                        message_payload.recipient
+                    )))
+                }
             },
             fee_recipient: message_payload
                 .fee_recipient
@@ -335,7 +351,12 @@ impl EvmBridgeClient {
 
         let base_fee_per_gas = match response {
             Ok(Some(block)) => block.base_fee_per_gas.unwrap_or_default(),
-            _ => return Err(BridgeSdkError::UnknownError),
+            Err(provider_err) => {
+                return Err(BridgeSdkError::EthRpcError(
+                    bridge_connector_common::result::EthRpcError::ProviderError(provider_err),
+                ))
+            }
+            Ok(None) => return Err(BridgeSdkError::UnknownError),
         };
 
         Ok((max_priority_fee_per_gas, base_fee_per_gas))
@@ -358,7 +379,9 @@ impl EvmBridgeClient {
             self.get_required_gas_fee(&client).await?;
 
         let Some(tx) = call.tx.as_eip1559_mut() else {
-            return Err(BridgeSdkError::UnknownError);
+            return Err(BridgeSdkError::InvalidArgument(
+                "Transaction is not EIP-1559 compatible".to_string(),
+            ));
         };
 
         tx.max_priority_fee_per_gas = Some(max_priority_fee_per_gas);
