@@ -2,7 +2,7 @@ use eth_proof::{EthClientError, EthProofError};
 use ethers::{
     contract::ContractError,
     middleware::SignerMiddleware,
-    providers::{Http, Provider},
+    providers::{Http, Provider, ProviderError},
     signers::LocalWallet,
 };
 use near_light_client_on_eth::NearLightClientOnEthError;
@@ -35,6 +35,8 @@ pub enum BridgeSdkError {
     SolanaOtherError(String),
     #[error("Wormhole client error: {0}")]
     WormholeClientError(String),
+    #[error("Invalid argument provided: {0}")]
+    InvalidArgument(String),
     #[error("Unexpected error occured")]
     UnknownError,
 }
@@ -58,6 +60,7 @@ pub enum EthRpcError {
     SignerContractError(#[source] ContractError<SignerMiddleware<Provider<Http>, LocalWallet>>),
     ProviderContractError(#[source] ContractError<Provider<Http>>),
     EthClientError(#[source] EthClientError),
+    ProviderError(#[source] ProviderError),
 }
 
 impl From<EthProofError> for BridgeSdkError {
