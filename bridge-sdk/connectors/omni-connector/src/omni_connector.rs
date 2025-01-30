@@ -476,8 +476,6 @@ impl OmniConnector {
 
         self.solana_deploy_token_with_event(serde_json::from_str(&transfer_log)?)
             .await
-            // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
-            .map_err(|_| BridgeSdkError::UnknownError)
     }
 
     pub async fn solana_deploy_token_with_event(
@@ -489,7 +487,7 @@ impl OmniConnector {
             metadata_payload,
         } = event
         else {
-            return Err(BridgeSdkError::UnknownError);
+            return Err(BridgeSdkError::UnknownError("Invalid event".to_string()));
         };
 
         let solana_bridge_client = self.solana_bridge_client()?;
@@ -509,9 +507,14 @@ impl OmniConnector {
             })?,
         };
 
-        let tx_hash = solana_bridge_client.deploy_token(payload).await?;
+        let signature = solana_bridge_client.deploy_token(payload).await?;
 
-        Ok(tx_hash)
+        tracing::info!(
+            signature = signature.to_string(),
+            "Sent deploy token transaction"
+        );
+
+        Ok(signature)
     }
 
     pub async fn solana_init_transfer(
@@ -522,16 +525,16 @@ impl OmniConnector {
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
-        let tx_hash = solana_bridge_client
+        let signature = solana_bridge_client
             .init_transfer(token, amount, recipient)
             .await?;
 
         tracing::info!(
-            tx_hash = format!("{:?}", tx_hash),
-            "Sent init transfer native transaction"
+            signature = signature.to_string(),
+            "Sent init transfer transaction"
         );
 
-        Ok(tx_hash)
+        Ok(signature)
     }
 
     pub async fn solana_init_transfer_sol(
@@ -541,16 +544,16 @@ impl OmniConnector {
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
-        let tx_hash = solana_bridge_client
+        let signature = solana_bridge_client
             .init_transfer_sol(amount, recipient)
             .await?;
 
         tracing::info!(
-            tx_hash = format!("{:?}", tx_hash),
+            signature = signature.to_string(),
             "Sent init transfer SOL transaction"
         );
 
-        Ok(tx_hash)
+        Ok(signature)
     }
 
     pub async fn solana_finalize_transfer_with_tx_hash(
@@ -567,8 +570,6 @@ impl OmniConnector {
 
         self.solana_finalize_transfer_with_event(serde_json::from_str(&transfer_log)?, solana_token)
             .await
-            // TODO: This will silence a real error, so it must be fixed during `BridgeSdkError` refactoring
-            .map_err(|_| BridgeSdkError::UnknownError)
     }
 
     pub async fn solana_finalize_transfer_with_event(
@@ -581,7 +582,7 @@ impl OmniConnector {
             signature,
         } = event
         else {
-            return Err(BridgeSdkError::UnknownError);
+            return Err(BridgeSdkError::UnknownError("Invalid event".to_string()));
         };
 
         let solana_bridge_client = self.solana_bridge_client()?;
@@ -608,7 +609,7 @@ impl OmniConnector {
             })?,
         };
 
-        let tx_hash = if solana_token == Pubkey::default() {
+        let signature = if solana_token == Pubkey::default() {
             solana_bridge_client.finalize_transfer_sol(payload).await?
         } else {
             solana_bridge_client
@@ -616,7 +617,12 @@ impl OmniConnector {
                 .await?
         };
 
-        Ok(tx_hash)
+        tracing::info!(
+            signature = signature.to_string(),
+            "Sent finalize transfer transaction"
+        );
+
+        Ok(signature)
     }
 
     pub async fn log_metadata(&self, token: OmniAddress) -> Result<String> {
@@ -665,8 +671,7 @@ impl OmniConnector {
             DeployTokenArgs::SolanaDeployToken { event } => self
                 .solana_deploy_token_with_event(event)
                 .await
-                .map(|hash| hash.to_string())
-                .map_err(|_| BridgeSdkError::UnknownError),
+                .map(|hash| hash.to_string()),
             DeployTokenArgs::SolanaDeployTokenWithTxHash {
                 near_tx_hash: tx_hash,
                 sender_id,
