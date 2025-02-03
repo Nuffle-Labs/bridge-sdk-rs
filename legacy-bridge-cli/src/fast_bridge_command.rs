@@ -1,7 +1,7 @@
 use crate::{combined_config, CliConfig, Network};
 use clap::Subcommand;
 use ethers_core::types::{Address, TxHash};
-use fast_bridge::{FastBridge, FastBridgeBuilder};
+use legacy_fast_bridge::{FastBridge, FastBridgeBuilder};
 use near_primitives::types::AccountId;
 use std::{
     ops::Add,

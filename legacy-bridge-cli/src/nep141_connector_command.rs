@@ -1,7 +1,7 @@
 use crate::{combined_config, CliConfig, Network};
 use clap::Subcommand;
 use ethers_core::types::TxHash;
-use nep141_connector::{Nep141Connector, Nep141ConnectorBuilder};
+use legacy_nep141_connector::{Nep141Connector, Nep141ConnectorBuilder};
 use std::str::FromStr;
 
 #[derive(Subcommand, Debug)]

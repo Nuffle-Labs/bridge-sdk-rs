@@ -1,5 +1,5 @@
 [package]
-name = "nep141-connector"
+name = "legacy-nep141-connector"
 version = "0.2.0"
 edition = "2021"
 
@@ -17,7 +17,7 @@ derive_builder.workspace = true
 tracing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-eth-proof = { path = "../../eth-proof" }
-near-rpc-client = { path = "../../near-rpc-client" }
-near-light-client-on-eth = { path = "../../near-light-client-on-eth" }
-bridge-connector-common = { path = "../bridge-connector-common" }
+legacy-eth-proof = { path = "../../eth-proof" }
+legacy-near-rpc-client = { path = "../../near-rpc-client" }
+legacy-near-light-client-on-eth = { path = "../../near-light-client-on-eth" }
+legacy-bridge-connector-common = { path = "../bridge-connector-common" }

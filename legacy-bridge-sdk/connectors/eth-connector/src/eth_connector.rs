@@ -1,13 +1,13 @@
 use borsh::BorshSerialize;
-use bridge_connector_common::result::{BridgeSdkError, Result};
 use ethers::{abi::Address, prelude::*};
+use legacy_bridge_connector_common::result::{BridgeSdkError, Result};
+use legacy_near_light_client_on_eth::NearOnEthClient;
+use legacy_near_rpc_client::ChangeRequest;
 use near_crypto::SecretKey;
-use near_light_client_on_eth::NearOnEthClient;
 use near_primitives::{
     hash::CryptoHash,
     types::{AccountId, TransactionOrReceiptId},
 };
-use near_rpc_client::ChangeRequest;
 use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 
@@ -101,7 +101,8 @@ impl EthConnector {
         )))
         .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
 
-        let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
+        let proof =
+            legacy_eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
 
         let mut args = Vec::new();
         proof
@@ -110,7 +111,7 @@ impl EthConnector {
 
         tracing::debug!("Retrieved Ethereum proof");
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 method_name: "deposit".to_string(),
@@ -151,7 +152,7 @@ impl EthConnector {
             .serialize(&mut args)
             .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 method_name: "withdraw".to_string(),
@@ -200,7 +201,7 @@ impl EthConnector {
             })?,
         };
 
-        let proof_data = near_rpc_client::get_light_client_proof(
+        let proof_data = legacy_near_rpc_client::get_light_client_proof(
             near_endpoint,
             receipt_id,
             CryptoHash(block_hash),
