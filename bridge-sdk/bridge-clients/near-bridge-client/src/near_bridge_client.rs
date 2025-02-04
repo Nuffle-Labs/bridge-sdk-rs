@@ -491,10 +491,11 @@ impl NearBridgeClient {
                     "receiver_id": token_locker,
                     "amount": amount.to_string(),
                     "msg": serde_json::json!({
-                "recipient": receiver,
-                "fee": fee,
-                "native_token_fee": native_fee
+                        "recipient": receiver,
+                        "fee": fee.to_string(),
+                        "native_token_fee": native_fee.to_string()
                     })
+                    .to_string()
                 })
                 .to_string()
                 .into_bytes(),
