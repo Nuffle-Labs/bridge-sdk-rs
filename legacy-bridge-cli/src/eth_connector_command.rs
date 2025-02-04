@@ -1,7 +1,7 @@
 use crate::{combined_config, CliConfig, Network};
 use clap::Subcommand;
-use eth_connector::{EthConnector, EthConnectorBuilder};
 use ethers_core::types::{Address, TxHash};
+use legacy_eth_connector::{EthConnector, EthConnectorBuilder};
 use near_primitives::hash::CryptoHash;
 use std::str::FromStr;
 

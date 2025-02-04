@@ -1,7 +1,8 @@
 [package]
 name = "bridge-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+repository = "https://github.com/Near-One/bridge-sdk-rs"
 
 [dependencies]
 clap.workspace = true
@@ -16,9 +17,6 @@ tracing.workspace = true
 omni-types.workspace = true
 solana-client.workspace = true
 solana-sdk.workspace = true
-nep141-connector = { path = "../bridge-sdk/connectors/nep141-connector" }
-eth-connector = { path = "../bridge-sdk/connectors/eth-connector" }
-fast-bridge = { path = "../bridge-sdk/connectors/fast-bridge" }
 omni-connector = { path = "../bridge-sdk/connectors/omni-connector" }
 near-bridge-client = { path = "../bridge-sdk/bridge-clients/near-bridge-client" }
 evm-bridge-client = { path = "../bridge-sdk/bridge-clients/evm-bridge-client" }

@@ -1,11 +1,11 @@
 use base64::prelude::*;
 use borsh::BorshSerialize;
-use bridge_connector_common::result::{BridgeSdkError, Result};
 use derive_builder::Builder;
 use ethers::prelude::*;
+use legacy_bridge_connector_common::result::{BridgeSdkError, Result};
+use legacy_near_rpc_client::ChangeRequest;
 use near_crypto::SecretKey;
 use near_primitives::{hash::CryptoHash, types::AccountId};
-use near_rpc_client::ChangeRequest;
 use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 
@@ -96,7 +96,7 @@ impl FastBridge {
         let mut buffer: Vec<u8> = Vec::new();
         message
             .serialize(&mut buffer)
-            .map_err(|_| BridgeSdkError::UnknownError)?;
+            .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
         let msg = BASE64_STANDARD.encode(&buffer);
 
         let args = format!(
@@ -105,7 +105,7 @@ impl FastBridge {
         .to_string()
         .into_bytes();
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
@@ -170,9 +170,10 @@ impl FastBridge {
         let event_topic = H256::from_str(&hex::encode(Keccak256::digest(
             "TransferTokens(uint256,address,address,address,uint256,string,bytes32)".as_bytes(),
         )))
-        .map_err(|_| BridgeSdkError::UnknownError)?;
+        .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
 
-        let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
+        let proof =
+            legacy_eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
 
         let serialized_proof = serde_json::to_string(&proof).unwrap();
         let args = format!(r#"{{"proof":{serialized_proof}}}"#)
@@ -181,7 +182,7 @@ impl FastBridge {
 
         tracing::debug!("Retrieved Ethereum proof");
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
@@ -229,7 +230,7 @@ impl FastBridge {
 
         let args = json.to_string().into_bytes();
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,

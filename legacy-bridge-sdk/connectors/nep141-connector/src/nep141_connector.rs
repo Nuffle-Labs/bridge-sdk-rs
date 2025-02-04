@@ -1,13 +1,13 @@
 use borsh::BorshSerialize;
-use bridge_connector_common::result::{BridgeSdkError, Result};
 use ethers::{abi::Address, prelude::*};
+use legacy_bridge_connector_common::result::{BridgeSdkError, Result};
+use legacy_near_light_client_on_eth::NearOnEthClient;
+use legacy_near_rpc_client::ChangeRequest;
 use near_crypto::SecretKey;
-use near_light_client_on_eth::NearOnEthClient;
 use near_primitives::{
     hash::CryptoHash,
     types::{AccountId, TransactionOrReceiptId},
 };
-use near_rpc_client::ChangeRequest;
 use sha3::{Digest, Keccak256};
 use std::{str::FromStr, sync::Arc};
 
@@ -65,7 +65,7 @@ impl Nep141Connector {
 
         let args = format!(r#"{{"token_id":"{near_token_id}"}}"#).into_bytes();
 
-        let tx_id = near_rpc_client::change(
+        let tx_id = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
@@ -97,7 +97,7 @@ impl Nep141Connector {
 
         let args = format!(r#"{{"account_id":"{token_locker}"}}"#).into_bytes();
 
-        let tx_id = near_rpc_client::change(
+        let tx_id = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
@@ -139,10 +139,10 @@ impl Nep141Connector {
         let receipt_id = TransactionOrReceiptId::Receipt {
             receipt_id,
             receiver_id: AccountId::from_str(self.token_locker_id()?)
-                .map_err(|_| BridgeSdkError::UnknownError)?,
+                .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
         };
 
-        let proof_data = near_rpc_client::get_light_client_proof(
+        let proof_data = legacy_near_rpc_client::get_light_client_proof(
             near_endpoint,
             receipt_id,
             CryptoHash(block_hash),
@@ -184,7 +184,7 @@ impl Nep141Connector {
             format!(r#"{{"receiver_id":"{token_locker}","amount":"{amount}","msg":"{receiver}"}}"#)
                 .into_bytes();
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,
@@ -226,10 +226,10 @@ impl Nep141Connector {
         let receipt_id = TransactionOrReceiptId::Receipt {
             receipt_id,
             receiver_id: AccountId::from_str(self.token_locker_id()?)
-                .map_err(|_| BridgeSdkError::UnknownError)?,
+                .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
         };
 
-        let proof_data = near_rpc_client::get_light_client_proof(
+        let proof_data = legacy_near_rpc_client::get_light_client_proof(
             near_endpoint,
             receipt_id,
             CryptoHash(block_hash),
@@ -316,9 +316,10 @@ impl Nep141Connector {
         let event_topic = H256::from_str(&hex::encode(Keccak256::digest(
             "Withdraw(string,address,uint256,string,address)".as_bytes(),
         )))
-        .map_err(|_| BridgeSdkError::UnknownError)?;
+        .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
 
-        let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
+        let proof =
+            legacy_eth_proof::get_proof_for_event(tx_hash, event_topic, eth_endpoint).await?;
 
         let mut args = Vec::new();
         proof
@@ -327,7 +328,7 @@ impl Nep141Connector {
 
         tracing::debug!("Retrieved Ethereum proof");
 
-        let tx_hash = near_rpc_client::change(
+        let tx_hash = legacy_near_rpc_client::change(
             near_endpoint,
             ChangeRequest {
                 signer: self.near_signer()?,

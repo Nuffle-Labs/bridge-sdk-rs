@@ -115,6 +115,7 @@ impl EvmBridgeClient {
         amount: u128,
         receiver: OmniAddress,
         fee: Fee,
+        message: String,
     ) -> Result<TxHash> {
         let factory = self.bridge_token_factory()?;
 
@@ -157,7 +158,7 @@ impl EvmBridgeClient {
             fee.fee.into(),
             fee.native_fee.into(),
             receiver.to_string(),
-            String::new(),
+            message,
         );
         self.prepare_tx_for_sending(&mut withdraw_call).await?;
         let tx = withdraw_call.send().await?;
@@ -247,7 +248,7 @@ impl EvmBridgeClient {
         };
         let event_topic =
             H256::from_str(&hex::encode(Keccak256::digest(event_signature.as_bytes())))
-                .map_err(|_| BridgeSdkError::UnknownError)?;
+                .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?;
 
         let proof = eth_proof::get_proof_for_event(tx_hash, event_topic, endpoint).await?;
 
@@ -344,19 +345,23 @@ impl EvmBridgeClient {
 
         let max_priority_fee_per_gas = match response {
             Ok(fee) => fee,
-            Err(_) => return Err(BridgeSdkError::UnknownError),
+            Err(err) => return Err(BridgeSdkError::UnknownError(err.to_string())),
         };
 
         let response = client.get_block(BlockNumber::Latest).await;
 
         let base_fee_per_gas = match response {
             Ok(Some(block)) => block.base_fee_per_gas.unwrap_or_default(),
+            Ok(None) => {
+                return Err(BridgeSdkError::UnknownError(
+                    "Failed to get base fee per gas".to_string(),
+                ))
+            }
             Err(provider_err) => {
                 return Err(BridgeSdkError::EthRpcError(
                     bridge_connector_common::result::EthRpcError::ProviderError(provider_err),
                 ))
             }
-            Ok(None) => return Err(BridgeSdkError::UnknownError),
         };
 
         Ok((max_priority_fee_per_gas, base_fee_per_gas))
