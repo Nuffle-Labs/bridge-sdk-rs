@@ -88,23 +88,23 @@ pub enum InitTransferArgs {
     NearInitTransfer {
         token: String,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     },
     EvmInitTransfer {
         chain_kind: ChainKind,
         token: String,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         fee: Fee,
     },
     SolanaInitTransfer {
         token: Pubkey,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     },
     SolanaInitTransferSol {
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     },
 }
 
@@ -232,7 +232,7 @@ impl OmniConnector {
         &self,
         token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
     ) -> Result<CryptoHash> {
         let near_bridge_client = self.near_bridge_client()?;
         near_bridge_client
@@ -392,7 +392,7 @@ impl OmniConnector {
         chain_kind: ChainKind,
         near_token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
         fee: Fee,
     ) -> Result<TxHash> {
         let evm_bridge_client = self.evm_bridge_client(chain_kind)?;
@@ -518,12 +518,12 @@ impl OmniConnector {
         &self,
         token: Pubkey,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let tx_hash = solana_bridge_client
-            .init_transfer(token, amount, recipient)
+            .init_transfer(token, amount, recipient.to_string())
             .await?;
 
         tracing::info!(
@@ -537,12 +537,12 @@ impl OmniConnector {
     pub async fn solana_init_transfer_sol(
         &self,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let tx_hash = solana_bridge_client
-            .init_transfer_sol(amount, recipient)
+            .init_transfer_sol(amount, recipient.to_string())
             .await?;
 
         tracing::info!(

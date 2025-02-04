@@ -422,8 +422,8 @@ impl NearBridgeClient {
     /// Gets the required balance for the init transfer
     pub async fn get_required_balance_for_init_transfer(
         &self,
-        recipient: &str,
-        sender: &str,
+        recipient: &OmniAddress,
+        sender: &OmniAddress,
     ) -> Result<u128> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -451,13 +451,16 @@ impl NearBridgeClient {
         &self,
         token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker = self.token_locker_id()?;
 
         let required_balance = self
-            .get_required_balance_for_init_transfer(&receiver, self.account_id()?.as_str())
+            .get_required_balance_for_init_transfer(
+                &receiver,
+                &OmniAddress::Near(self.account_id()?),
+            )
             .await?
             + self.get_required_balance_for_account().await?;
         let existing_balance = self
