@@ -3,6 +3,9 @@ name = "legacy-bridge-cli"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.dist]
+dist = false
+
 [dependencies]
 clap.workspace = true
 dotenv.workspace = true
