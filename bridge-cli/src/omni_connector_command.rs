@@ -196,7 +196,16 @@ pub enum OmniConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
-
+    SolanaSetAdmin {
+        #[clap(short, long, help = "Admin pubkey")]
+        admin: String,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+    SolanaPause {
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
     #[clap(about = "Bind a token on a chain that supports Wormhole")]
     BindToken {
         #[clap(short, long, help = "Chain to bind the token from")]
@@ -423,6 +432,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                     token: token.parse().unwrap(),
                     amount,
                     recipient,
+                    message: String::new(),
                 })
                 .await
                 .unwrap();
@@ -433,7 +443,11 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .init_transfer(InitTransferArgs::SolanaInitTransferSol { amount, recipient })
+                .init_transfer(InitTransferArgs::SolanaInitTransferSol {
+                    amount,
+                    recipient,
+                    message: String::new(),
+                })
                 .await
                 .unwrap();
         }
@@ -472,11 +486,23 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 omni_connector(network, config_cli)
                     .bind_token(BindTokenArgs::BindTokenWithVaaProofTx {
                         chain_kind: chain,
-                        tx_hash: TxHash::from_str(&tx_hash).expect("Invalid tx_hash"),
+                        tx_hash,
                     })
                     .await
                     .unwrap();
             }
+        },
+        OmniConnectorSubCommand::SolanaSetAdmin { admin, config_cli } => {
+            omni_connector(network, config_cli)
+                .solana_set_admin(admin.parse().unwrap())
+                .await
+                .unwrap();
+        },
+        OmniConnectorSubCommand::SolanaPause { config_cli } => {
+            omni_connector(network, config_cli)
+                .solana_pause()
+                .await
+                .unwrap();
         },
     }
 }
