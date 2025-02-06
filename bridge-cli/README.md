@@ -107,7 +107,7 @@ bridge-cli testnet solana-finalize-transfer \
 
 The Bridge CLI supports various commands organized by network. Here's an overview of the main commands:
 
-### Global Subcommand
+### Global Network Subcommand
 
 ```bash
 # calling method on testnet
@@ -117,27 +117,9 @@ bridge-cli testnet log-metadata ...
 bridge-cli mainnet log-metadata ...
 ```
 
-### Omni Connector Commands
-
-The Omni Connector provides comprehensive cross-chain functionality for token transfers and management:
-
-#### Token Management
-```bash
-# View token metadata
-bridge-cli log-metadata --token <TOKEN_ADDRESS>
-
-# Deploy a token from another chain
-bridge-cli deploy-token \
-    --chain <DESTINATION_CHAIN> \
-    --source-chain <SOURCE_CHAIN> \
-    --tx-hash <TX_HASH>
-
-# Bind a token (for Wormhole-supported chains)
-bridge-cli bind-token --chain <CHAIN>
-```
-
 #### NEAR Operations
 
+```bash
 # Deposit storage for a token on NEAR
 
 bridge-cli near-storage-deposit \
