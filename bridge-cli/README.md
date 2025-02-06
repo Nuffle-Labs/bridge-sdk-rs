@@ -35,6 +35,46 @@ cargo build --release
 ./target/release/bridge-cli
 ```
 
+
+## Configuration
+
+The CLI can be configured in multiple ways (in order of precedence):
+
+1. Command-line arguments
+2. Environment variables (preferred way)
+3. Configuration file
+4. Default values
+
+### Setting up env file
+
+```.env
+NEAR_SIGNER=<signer-account-id>
+NEAR_PRIVATE_KEY=<signer-private-key>
+
+# mainnet
+TOKEN_LOCKER_ID=omni.bridge.near
+
+# testnet
+# TOKEN_LOCKER_ID=omni-locker.testnet
+
+ETH_PRIVATE_KEY=<eth-private-key>
+BASE_PRIVATE_KEY=<base-private-key>
+ARB_PRIVATE_KEY=<arbitrum-private-key>
+
+# you can provide solana's keypair as base58 string
+SOLANA_KEYPAIR=<solana-keypair-bs58>
+# or by providing an absolute path to the file where keypair is stored
+# SOLANA_KEYPAIR=/Users/.../solana-wallet.json
+```
+
+### Configuration File
+
+You can create a configuration file with your preferred settings. The CLI will look for it in the default location or you can specify it using the `--config` flag.
+
+### Default file
+
+You can manually modify `bridge-cli/src/defaults.rs` file
+
 ## Quick Start
 
 ### Example 1: Deploy an ERC20 Token to NEAR
@@ -198,45 +238,6 @@ bridge-cli solana-finalize-transfer-sol \
     --tx-hash <NEAR_TX_HASH> \
     [--sender-id <NEAR_SENDER_ID>]
 ```
-
-## Configuration
-
-The CLI can be configured in multiple ways (in order of precedence):
-
-1. Command-line arguments
-2. Environment variables (preferred way)
-3. Configuration file
-4. Default values
-
-### Setting up env file
-
-```.env
-NEAR_SIGNER=<signer-account-id>
-NEAR_PRIVATE_KEY=<signer-private-key>
-
-# mainnet
-TOKEN_LOCKER_ID=omni.bridge.near
-
-# testnet
-# TOKEN_LOCKER_ID=omni-locker.testnet
-
-ETH_PRIVATE_KEY=<eth-private-key>
-BASE_PRIVATE_KEY=<base-private-key>
-ARB_PRIVATE_KEY=<arbitrum-private-key>
-
-# you can provide solana's keypair as base58 string
-SOLANA_KEYPAIR=<solana-keypair-bs58>
-# or by providing an absolute path to the file where keypair is stored
-# SOLANA_KEYPAIR=/Users/.../solana-wallet.json
-```
-
-### Configuration File
-
-You can create a configuration file with your preferred settings. The CLI will look for it in the default location or you can specify it using the `--config` flag.
-
-### Default file
-
-You can manually modify `bridge-cli/src/defaults.rs` file
 
 ## Development Status
 
