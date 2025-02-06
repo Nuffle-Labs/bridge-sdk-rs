@@ -203,8 +203,8 @@ bridge-cli solana-finalize-transfer-sol \
 
 The CLI can be configured in multiple ways (in order of precedence):
 
-1. Environment variables (preffered way)
-2. Command-line arguments
+1. Command-line arguments
+2. Environment variables (preferred way)
 3. Configuration file
 4. Default values
 
