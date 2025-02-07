@@ -60,8 +60,8 @@ struct CliConfig {
     #[arg(long)]
     wormhole_api: Option<String>,
 
-    #[arg(long)]
-    config_file: Option<String>,
+    #[arg(short, long)]
+    config: Option<String>,
 }
 
 impl CliConfig {
@@ -105,7 +105,7 @@ impl CliConfig {
 
             wormhole_api: self.wormhole_api.or(other.wormhole_api),
 
-            config_file: self.config_file.or(other.config_file),
+            config: self.config.or(other.config),
         }
     }
 }
@@ -146,7 +146,7 @@ fn env_config() -> CliConfig {
 
         wormhole_api: env::var("WORMHOLE_API").ok(),
 
-        config_file: None,
+        config: None,
     }
 }
 
@@ -189,7 +189,7 @@ fn default_config(network: Network) -> CliConfig {
 
             wormhole_api: Some(defaults::WORMHOLE_API_MAINNET.to_owned()),
 
-            config_file: None,
+            config: None,
         },
         Network::Testnet => CliConfig {
             near_rpc: Some(defaults::NEAR_RPC_TESTNET.to_owned()),
@@ -228,7 +228,7 @@ fn default_config(network: Network) -> CliConfig {
 
             wormhole_api: Some(defaults::WORMHOLE_API_TESTNET.to_owned()),
 
-            config_file: None,
+            config: None,
         },
     }
 }
@@ -242,7 +242,7 @@ fn file_config(path: &str) -> CliConfig {
 
 fn combined_config(cli_config: CliConfig, network: Network) -> CliConfig {
     let file_config = cli_config
-        .config_file
+        .config
         .as_ref()
         .map_or_else(CliConfig::default, |path| file_config(path));
 

@@ -113,7 +113,7 @@ impl EvmBridgeClient {
         &self,
         near_token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
         fee: Fee,
         message: String,
     ) -> Result<TxHash> {
@@ -157,7 +157,7 @@ impl EvmBridgeClient {
             amount,
             fee.fee.into(),
             fee.native_fee.into(),
-            receiver,
+            receiver.to_string(),
             message,
         );
         self.prepare_tx_for_sending(&mut withdraw_call).await?;

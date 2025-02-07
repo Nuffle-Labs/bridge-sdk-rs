@@ -88,25 +88,25 @@ pub enum InitTransferArgs {
     NearInitTransfer {
         token: String,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
     },
     EvmInitTransfer {
         chain_kind: ChainKind,
         token: String,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         fee: Fee,
         message: String,
     },
     SolanaInitTransfer {
         token: Pubkey,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         message: String,
     },
     SolanaInitTransferSol {
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         message: String,
     },
 }
@@ -235,7 +235,7 @@ impl OmniConnector {
         &self,
         token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
     ) -> Result<CryptoHash> {
         let near_bridge_client = self.near_bridge_client()?;
         near_bridge_client
@@ -395,7 +395,7 @@ impl OmniConnector {
         chain_kind: ChainKind,
         near_token_id: String,
         amount: u128,
-        receiver: String,
+        receiver: OmniAddress,
         fee: Fee,
         message: String,
     ) -> Result<TxHash> {
@@ -548,13 +548,13 @@ impl OmniConnector {
         &self,
         token: Pubkey,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         message: String,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let signature = solana_bridge_client
-            .init_transfer(token, amount, recipient, message)
+            .init_transfer(token, amount, recipient.to_string(), message)
             .await?;
 
         tracing::info!(
@@ -568,13 +568,13 @@ impl OmniConnector {
     pub async fn solana_init_transfer_sol(
         &self,
         amount: u128,
-        recipient: String,
+        recipient: OmniAddress,
         message: String,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let signature = solana_bridge_client
-            .init_transfer_sol(amount, recipient, message)
+            .init_transfer_sol(amount, recipient.to_string(), message)
             .await?;
 
         tracing::info!(

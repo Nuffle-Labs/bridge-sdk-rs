@@ -74,7 +74,7 @@ pub enum OmniConnectorSubCommand {
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
         #[clap(short, long, help = "Recipient address on the destination chain")]
-        recipient: String,
+        recipient: OmniAddress,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -120,8 +120,8 @@ pub enum OmniConnectorSubCommand {
         token: String,
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
-        #[clap(short, long, help = "Recipient address on the NEAR")]
-        recipient: String,
+        #[clap(short, long, help = "Recipient address")]
+        recipient: OmniAddress,
         #[clap(short, long, help = "Fee to charge for the transfer")]
         fee: u128,
         #[clap(short, long, help = "Native fee to charge for the transfer")]
@@ -163,7 +163,7 @@ pub enum OmniConnectorSubCommand {
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
         #[clap(short, long, help = "Recipient address on the destination chain")]
-        recipient: String,
+        recipient: OmniAddress,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -172,7 +172,7 @@ pub enum OmniConnectorSubCommand {
         #[clap(short, long, help = "Amount to transfer")]
         amount: u128,
         #[clap(short, long, help = "Recipient address on the destination chain")]
-        recipient: String,
+        recipient: OmniAddress,
         #[command(flatten)]
         config_cli: CliConfig,
     },
