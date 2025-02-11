@@ -4,7 +4,7 @@ use bridge_connector_common::result::{BridgeSdkError, Result};
 use derive_builder::Builder;
 use near_contract_standards::storage_management::StorageBalance;
 use near_crypto::SecretKey;
-use near_primitives::{hash::CryptoHash, types::AccountId};
+use near_primitives::{hash::CryptoHash, types::AccountId, views::TxExecutionStatus};
 use near_rpc_client::{ChangeRequest, ViewRequest};
 use near_token::NearToken;
 use omni_types::{
@@ -34,6 +34,20 @@ const FIN_TRANSFER_DEPOSIT: u128 = 60_000_000_000_000_000_000_000;
 
 const CLAIM_FEE_GAS: u64 = 300_000_000_000_000;
 const CLAIM_FEE_DEPOSIT: u128 = 200_000_000_000_000_000_000_000;
+
+pub struct TransactionOptions {
+    pub nonce: Option<u64>,
+    pub wait_until: TxExecutionStatus,
+}
+
+impl Default for TransactionOptions {
+    fn default() -> Self {
+        Self {
+            nonce: None,
+            wait_until: TxExecutionStatus::Final,
+        }
+    }
+}
 
 #[derive(serde::Deserialize)]
 struct StorageBalanceBounds {
@@ -173,6 +187,7 @@ impl NearBridgeClient {
         &self,
         token_id: String,
         amount: u128,
+        transaction_options: TransactionOptions,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker = self.token_locker_id()?;
@@ -181,6 +196,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_id.parse().map_err(|err| {
                     BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
                 })?,
@@ -193,7 +209,7 @@ impl NearBridgeClient {
                 gas: STORAGE_DEPOSIT_GAS,
                 deposit: amount,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -205,7 +221,11 @@ impl NearBridgeClient {
         Ok(tx_hash)
     }
 
-    pub async fn storage_deposit(&self, amount: u128) -> Result<CryptoHash> {
+    pub async fn storage_deposit(
+        &self,
+        amount: u128,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
 
@@ -213,6 +233,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_locker_id,
                 method_name: "storage_deposit".to_string(),
                 args: json!({
@@ -223,7 +244,7 @@ impl NearBridgeClient {
                 gas: STORAGE_DEPOSIT_GAS,
                 deposit: amount,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -268,13 +289,18 @@ impl NearBridgeClient {
 
     /// Logs token metadata to token_locker contract. The proof from this transaction is then used to deploy a corresponding token on other chains
     #[tracing::instrument(skip_all, name = "LOG METADATA")]
-    pub async fn log_token_metadata(&self, token_id: String) -> Result<CryptoHash> {
+    pub async fn log_token_metadata(
+        &self,
+        token_id: String,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: self.token_locker_id()?,
                 method_name: "log_metadata".to_string(),
                 args: serde_json::json!({
@@ -285,7 +311,7 @@ impl NearBridgeClient {
                 gas: LOG_METADATA_GAS,
                 deposit: self.get_required_deposit_for_mpc().await?,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -299,6 +325,7 @@ impl NearBridgeClient {
         &self,
         chain_kind: ChainKind,
         vaa: &str,
+        transaction_options: TransactionOptions,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -317,6 +344,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_locker_id,
                 method_name: "deploy_token".to_string(),
                 args: borsh::to_vec(&args)
@@ -324,7 +352,7 @@ impl NearBridgeClient {
                 gas: DEPLOY_TOKEN_GAS,
                 deposit: DEPLOY_TOKEN_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -337,7 +365,11 @@ impl NearBridgeClient {
     }
 
     /// Deploys a token on the target chain using the evm proof
-    pub async fn deploy_token_with_evm_proof(&self, args: DeployTokenArgs) -> Result<CryptoHash> {
+    pub async fn deploy_token_with_evm_proof(
+        &self,
+        args: DeployTokenArgs,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
 
@@ -345,6 +377,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_locker_id,
                 method_name: "deploy_token".to_string(),
                 args: borsh::to_vec(&args)
@@ -352,7 +385,7 @@ impl NearBridgeClient {
                 gas: DEPLOY_TOKEN_GAS,
                 deposit: DEPLOY_TOKEN_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -366,7 +399,11 @@ impl NearBridgeClient {
 
     /// Binds token on NEAR chain using the token locker
     #[tracing::instrument(skip_all, name = "BIND TOKEN")]
-    pub async fn bind_token(&self, args: BindTokenArgs) -> Result<CryptoHash> {
+    pub async fn bind_token(
+        &self,
+        args: BindTokenArgs,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
 
@@ -374,6 +411,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_locker_id,
                 method_name: "bind_token".to_string(),
                 args: borsh::to_vec(&args)
@@ -381,7 +419,7 @@ impl NearBridgeClient {
                 gas: BIND_TOKEN_GAS,
                 deposit: BIND_TOKEN_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -396,6 +434,7 @@ impl NearBridgeClient {
         transfer_id: TransferId,
         fee_recipient: Option<AccountId>,
         fee: Option<Fee>,
+        transaction_options: TransactionOptions,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
@@ -403,6 +442,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: self.token_locker_id()?,
                 method_name: "sign_transfer".to_string(),
                 args: serde_json::json!({
@@ -415,7 +455,7 @@ impl NearBridgeClient {
                 gas: SIGN_TRANSFER_GAS,
                 deposit: self.get_required_deposit_for_mpc().await?,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -459,6 +499,7 @@ impl NearBridgeClient {
         token_id: String,
         amount: u128,
         receiver: OmniAddress,
+        transaction_options: TransactionOptions,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker = self.token_locker_id()?;
@@ -475,8 +516,14 @@ impl NearBridgeClient {
             .await?;
 
         if existing_balance < required_balance {
-            self.storage_deposit(required_balance - existing_balance)
-                .await?;
+            self.storage_deposit(
+                required_balance - existing_balance,
+                TransactionOptions {
+                    nonce: transaction_options.nonce,
+                    wait_until: TxExecutionStatus::Final,
+                },
+            )
+            .await?;
         }
 
         let fee = 0;
@@ -486,6 +533,8 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                // Increment nonce since previous was used for storage deposit
+                nonce: transaction_options.nonce.map(|nonce| nonce + 1),
                 receiver_id: token_id.parse().map_err(|err| {
                     BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
                 })?,
@@ -505,7 +554,7 @@ impl NearBridgeClient {
                 gas: INIT_TRANSFER_GAS,
                 deposit: INIT_TRANSFER_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Executed,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -515,13 +564,18 @@ impl NearBridgeClient {
 
     /// Withdraws NEP-141 tokens from the token locker. Requires a proof from the burn transaction
     #[tracing::instrument(skip_all, name = "NEAR FIN TRANSFER")]
-    pub async fn fin_transfer(&self, args: FinTransferArgs) -> Result<CryptoHash> {
+    pub async fn fin_transfer(
+        &self,
+        args: FinTransferArgs,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: self.token_locker_id()?,
                 method_name: "fin_transfer".to_string(),
                 args: borsh::to_vec(&args)
@@ -529,7 +583,7 @@ impl NearBridgeClient {
                 gas: FIN_TRANSFER_GAS,
                 deposit: FIN_TRANSFER_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Included,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -542,7 +596,11 @@ impl NearBridgeClient {
 
     /// Claims fee on NEAR chain using the token locker
     #[tracing::instrument(skip_all, name = "CLAIM FEE")]
-    pub async fn claim_fee(&self, args: ClaimFeeArgs) -> Result<CryptoHash> {
+    pub async fn claim_fee(
+        &self,
+        args: ClaimFeeArgs,
+        transaction_options: TransactionOptions,
+    ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
 
@@ -550,6 +608,7 @@ impl NearBridgeClient {
             endpoint,
             ChangeRequest {
                 signer: self.signer()?,
+                nonce: transaction_options.nonce,
                 receiver_id: token_locker_id,
                 method_name: "claim_fee".to_string(),
                 args: borsh::to_vec(&args)
@@ -557,7 +616,7 @@ impl NearBridgeClient {
                 gas: CLAIM_FEE_GAS,
                 deposit: CLAIM_FEE_DEPOSIT,
             },
-            near_primitives::views::TxExecutionStatus::Included,
+            transaction_options.wait_until,
         )
         .await?;
 
@@ -581,7 +640,7 @@ impl NearBridgeClient {
             endpoint,
             transaction_hash,
             sender_id.clone(),
-            near_primitives::views::TxExecutionStatus::Executed,
+            near_primitives::views::TxExecutionStatus::Final,
             60,
         )
         .await?;
