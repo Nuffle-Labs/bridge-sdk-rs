@@ -17,7 +17,7 @@ struct WormholeApiData {
     vaa: String,
 }
 
-/// WormholeBridgeClient is a client for interacting with the Wormhole API
+/// `WormholeBridgeClient` is a client for interacting with the Wormhole API
 #[derive(Builder, Default, Clone)]
 pub struct WormholeBridgeClient {
     #[doc = r"Wormhole API endpoint. Required for retrieving `vaa`"]
@@ -37,10 +37,7 @@ impl WormholeBridgeClient {
         let endpoint = self.endpoint()?;
         let sanitized_endpoint = endpoint.trim_end_matches('/');
 
-        let url = format!(
-            "{}/api/v1/vaas/{}/{}/{}",
-            sanitized_endpoint, chain_id, emitter, sequence
-        );
+        let url = format!("{sanitized_endpoint}/api/v1/vaas/{chain_id}/{emitter}/{sequence}");
 
         let response = reqwest::get(url)
             .await
@@ -59,7 +56,7 @@ impl WormholeBridgeClient {
         let endpoint = self.endpoint()?;
         let sanitized_endpoint = endpoint.trim_end_matches('/');
 
-        let url = format!("{}/api/v1/vaas/?txHash={}", sanitized_endpoint, tx_hash);
+        let url = format!("{sanitized_endpoint}/api/v1/vaas/?txHash={tx_hash}");
 
         let response = reqwest::get(url)
             .await

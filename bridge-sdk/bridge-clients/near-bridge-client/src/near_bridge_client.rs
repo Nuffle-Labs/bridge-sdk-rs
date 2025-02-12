@@ -198,7 +198,7 @@ impl NearBridgeClient {
                 signer: self.signer()?,
                 nonce: transaction_options.nonce,
                 receiver_id: token_id.parse().map_err(|err| {
-                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {err}"))
                 })?,
                 method_name: "storage_deposit".to_string(),
                 args: serde_json::json!({
@@ -536,7 +536,7 @@ impl NearBridgeClient {
                 // Increment nonce since previous was used for storage deposit
                 nonce: transaction_options.nonce.map(|nonce| nonce + 1),
                 receiver_id: token_id.parse().map_err(|err| {
-                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {err}"))
                 })?,
                 method_name: "ft_transfer_call".to_string(),
                 args: serde_json::json!({

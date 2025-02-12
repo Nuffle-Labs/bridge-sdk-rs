@@ -117,8 +117,7 @@ impl EthConnector {
                 method_name: "deposit".to_string(),
                 receiver_id: self.eth_connector_account_id()?.parse().map_err(|err| {
                     BridgeSdkError::ConfigError(format!(
-                        "Failed to parse eth_connector_account_id as AccountId: {}",
-                        err
+                        "Failed to parse eth_connector_account_id as AccountId: {err}"
                     ))
                 })?,
                 args,
@@ -158,8 +157,7 @@ impl EthConnector {
                 method_name: "withdraw".to_string(),
                 receiver_id: eth_connector_account_id.parse().map_err(|err| {
                     BridgeSdkError::ConfigError(format!(
-                        "Failed to parse eth_connector_account_id as AccountId: {}",
-                        err
+                        "Failed to parse eth_connector_account_id as AccountId: {err}"
                     ))
                 })?,
                 args,
