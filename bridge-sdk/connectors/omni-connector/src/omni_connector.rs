@@ -194,7 +194,7 @@ impl OmniConnector {
             } => {
                 let wormhole_bridge_client = self.wormhole_bridge_client()?;
                 let vaa = wormhole_bridge_client
-                    .get_vaa_by_tx_hash(format!("{:?}", tx_hash))
+                    .get_vaa_by_tx_hash(tx_hash.to_string())
                     .await?;
 
                 near_bridge_client
@@ -719,7 +719,7 @@ impl OmniConnector {
                 self.evm_log_metadata(
                     address.clone(),
                     token.get_chain(),
-                    transaction_options.nonce.map(|nonce| nonce.into()),
+                    transaction_options.nonce.map(std::convert::Into::into),
                 )
                 .await
                 .map(|hash| hash.to_string())

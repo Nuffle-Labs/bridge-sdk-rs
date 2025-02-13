@@ -14,10 +14,18 @@ use solana_sdk::{
 };
 use spl_token::state::Mint;
 
-use crate::{error::SolanaBridgeClientError, instructions::*};
+use crate::{
+    error::SolanaBridgeClientError,
+    instructions::{
+        DeployToken, FinalizeTransfer, FinalizeTransferInstructionPayload, FinalizeTransferSol,
+        InitTransfer, InitTransferSol, Initialize, LogMetadata, Pause, SetAdmin,
+    },
+};
 
 pub mod error;
 mod instructions;
+
+const USED_NONCES_PER_ACCOUNT: u64 = 1024;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct MetadataPayload {
@@ -83,7 +91,7 @@ impl SolanaBridgeClient {
         let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let instruction_data = Initialize {
@@ -136,11 +144,8 @@ impl SolanaBridgeClient {
             ],
         );
 
-        self.send_and_confirm_transaction(
-            vec![instruction],
-            &[keypair],
-        )
-        .await
+        self.send_and_confirm_transaction(vec![instruction], &[keypair])
+            .await
     }
 
     pub async fn pause(&self) -> Result<Signature, SolanaBridgeClientError> {
@@ -160,11 +165,8 @@ impl SolanaBridgeClient {
             ],
         );
 
-        self.send_and_confirm_transaction(
-            vec![instruction],
-            &[keypair],
-        )
-        .await
+        self.send_and_confirm_transaction(vec![instruction], &[keypair])
+            .await
     }
 
     pub async fn log_metadata(&self, token: Pubkey) -> Result<Signature, SolanaBridgeClientError> {
@@ -183,7 +185,7 @@ impl SolanaBridgeClient {
         );
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let instruction_data = LogMetadata {
@@ -249,7 +251,7 @@ impl SolanaBridgeClient {
         );
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let instruction_data = DeployToken { data };
@@ -306,7 +308,7 @@ impl SolanaBridgeClient {
         );
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let is_bridged_token = match self.get_token_owner(token).await? {
@@ -372,7 +374,7 @@ impl SolanaBridgeClient {
         let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
 
         let wormhole_message = Keypair::new();
 
@@ -419,7 +421,6 @@ impl SolanaBridgeClient {
 
         let (config, _) = Pubkey::find_program_address(&[b"config"], program_id);
 
-        const USED_NONCES_PER_ACCOUNT: u64 = 1024;
         let (used_nonces, _) = Pubkey::find_program_address(
             &[
                 b"used_nonces",
@@ -441,7 +442,7 @@ impl SolanaBridgeClient {
         );
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let instruction_data = FinalizeTransfer {
@@ -508,7 +509,6 @@ impl SolanaBridgeClient {
         let (config, _) = Pubkey::find_program_address(&[b"config"], program_id);
         let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], program_id);
 
-        const USED_NONCES_PER_ACCOUNT: u64 = 1024;
         let (used_nonces, _) = Pubkey::find_program_address(
             &[
                 b"used_nonces",
@@ -522,7 +522,7 @@ impl SolanaBridgeClient {
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], program_id);
 
         let (wormhole_bridge, wormhole_fee_collector, wormhole_sequence) =
-            self.get_wormhole_accounts().await?;
+            self.get_wormhole_accounts()?;
         let wormhole_message = Keypair::new();
 
         let instruction_data = FinalizeTransferSol {
@@ -562,9 +562,7 @@ impl SolanaBridgeClient {
             .await
     }
 
-    async fn get_wormhole_accounts(
-        &self,
-    ) -> Result<(Pubkey, Pubkey, Pubkey), SolanaBridgeClientError> {
+    fn get_wormhole_accounts(&self) -> Result<(Pubkey, Pubkey, Pubkey), SolanaBridgeClientError> {
         let program_id = self.program_id()?;
         let wormhole_core = self.wormhole_core()?;
 
