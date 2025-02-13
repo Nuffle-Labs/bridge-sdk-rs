@@ -136,11 +136,8 @@ impl SolanaBridgeClient {
             ],
         );
 
-        self.send_and_confirm_transaction(
-            vec![instruction],
-            &[keypair],
-        )
-        .await
+        self.send_and_confirm_transaction(vec![instruction], &[keypair])
+            .await
     }
 
     pub async fn pause(&self) -> Result<Signature, SolanaBridgeClientError> {
@@ -160,11 +157,8 @@ impl SolanaBridgeClient {
             ],
         );
 
-        self.send_and_confirm_transaction(
-            vec![instruction],
-            &[keypair],
-        )
-        .await
+        self.send_and_confirm_transaction(vec![instruction], &[keypair])
+            .await
     }
 
     pub async fn log_metadata(&self, token: Pubkey) -> Result<Signature, SolanaBridgeClientError> {
