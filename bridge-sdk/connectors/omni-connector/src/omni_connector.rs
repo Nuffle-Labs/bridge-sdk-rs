@@ -111,11 +111,15 @@ pub enum InitTransferArgs {
         token: Pubkey,
         amount: u128,
         recipient: OmniAddress,
+        fee: u128,
+        native_fee: u64,
         message: String,
     },
     SolanaInitTransferSol {
         amount: u128,
         recipient: OmniAddress,
+        fee: u128,
+        native_fee: u64,
         message: String,
     },
 }
@@ -604,12 +608,21 @@ impl OmniConnector {
         token: Pubkey,
         amount: u128,
         recipient: OmniAddress,
+        fee: u128,
+        native_fee: u64,
         message: String,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let signature = solana_bridge_client
-            .init_transfer(token, amount, recipient.to_string(), message)
+            .init_transfer(
+                token,
+                amount,
+                recipient.to_string(),
+                fee,
+                native_fee,
+                message,
+            )
             .await?;
 
         tracing::info!(
@@ -624,12 +637,14 @@ impl OmniConnector {
         &self,
         amount: u128,
         recipient: OmniAddress,
+        fee: u128,
+        native_fee: u64,
         message: String,
     ) -> Result<Signature> {
         let solana_bridge_client = self.solana_bridge_client()?;
 
         let signature = solana_bridge_client
-            .init_transfer_sol(amount, recipient.to_string(), message)
+            .init_transfer_sol(amount, recipient.to_string(), fee, native_fee, message)
             .await?;
 
         tracing::info!(
@@ -875,17 +890,21 @@ impl OmniConnector {
                 token,
                 amount,
                 recipient,
+                fee,
+                native_fee,
                 message,
             } => self
-                .solana_init_transfer(token, amount, recipient, message)
+                .solana_init_transfer(token, amount, recipient, fee, native_fee, message)
                 .await
                 .map(|tx_hash| tx_hash.to_string()),
             InitTransferArgs::SolanaInitTransferSol {
                 amount,
                 recipient,
+                fee,
+                native_fee,
                 message,
             } => self
-                .solana_init_transfer_sol(amount, recipient, message)
+                .solana_init_transfer_sol(amount, recipient, fee, native_fee, message)
                 .await
                 .map(|tx_hash| tx_hash.to_string()),
         }
