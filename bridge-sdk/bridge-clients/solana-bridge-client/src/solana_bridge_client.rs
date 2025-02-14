@@ -288,6 +288,8 @@ impl SolanaBridgeClient {
         token: Pubkey,
         amount: u128,
         recipient: String,
+        fee: u128,
+        native_fee: u64,
         message: String,
     ) -> Result<Signature, SolanaBridgeClientError> {
         let program_id = self.program_id()?;
@@ -320,8 +322,8 @@ impl SolanaBridgeClient {
         let instruction_data = InitTransfer {
             amount,
             recipient,
-            fee: 20,
-            native_fee: 10,
+            fee,
+            native_fee,
             message,
         };
 
@@ -363,6 +365,8 @@ impl SolanaBridgeClient {
         &self,
         amount: u128,
         recipient: String,
+        fee: u128,
+        native_fee: u64,
         message: String,
     ) -> Result<Signature, SolanaBridgeClientError> {
         let program_id = self.program_id()?;
@@ -381,8 +385,8 @@ impl SolanaBridgeClient {
         let instruction_data = InitTransferSol {
             amount,
             recipient,
-            fee: 0,
-            native_fee: 10,
+            fee,
+            native_fee,
             message,
         };
 
