@@ -164,6 +164,10 @@ pub enum OmniConnectorSubCommand {
         amount: u128,
         #[clap(short, long, help = "Recipient address on the destination chain")]
         recipient: OmniAddress,
+        #[clap(short, long, help = "Fee to charge for the transfer")]
+        fee: u128,
+        #[clap(short, long, help = "Native fee to charge for the transfer")]
+        native_fee: u64,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -173,6 +177,10 @@ pub enum OmniConnectorSubCommand {
         amount: u128,
         #[clap(short, long, help = "Recipient address on the destination chain")]
         recipient: OmniAddress,
+        #[clap(short, long, help = "Fee to charge for the transfer")]
+        fee: u128,
+        #[clap(short, long, help = "Native fee to charge for the transfer")]
+        native_fee: u64,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -226,7 +234,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
     match cmd {
         OmniConnectorSubCommand::LogMetadata { token, config_cli } => {
             omni_connector(network, config_cli)
-                .log_metadata(token, TransactionOptions::default())
+                .log_metadata(token, TransactionOptions::default(), None)
                 .await
                 .unwrap();
         }
@@ -243,6 +251,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                             chain_kind: source_chain,
                             tx_hash: TxHash::from_str(&tx_hash).expect("Invalid tx_hash"),
                             transaction_options: TransactionOptions::default(),
+                            wait_final_outcome_timeout_sec: None,
                         })
                         .await
                         .unwrap();
@@ -253,6 +262,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                             chain_kind: source_chain,
                             tx_hash: TxHash::from_str(&tx_hash).expect("Invalid tx_hash"),
                             transaction_options: TransactionOptions::default(),
+                            wait_final_outcome_timeout_sec: None,
                         })
                         .await
                         .unwrap();
@@ -284,7 +294,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             config_cli,
         } => {
             omni_connector(network, config_cli)
-                .near_storage_deposit_for_token(token, amount, TransactionOptions::default())
+                .near_storage_deposit_for_token(token, amount, TransactionOptions::default(), None)
                 .await
                 .unwrap();
         }
@@ -308,6 +318,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         native_fee: native_fee.into(),
                     }),
                     TransactionOptions::default(),
+                    None,
                 )
                 .await
                 .unwrap();
@@ -324,6 +335,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                     amount,
                     recipient,
                     transaction_options: TransactionOptions::default(),
+                    wait_final_outcome_timeout_sec: None,
                 })
                 .await
                 .unwrap();
@@ -350,6 +362,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         })
                         .collect(),
                     transaction_options: TransactionOptions::default(),
+                    wait_final_outcome_timeout_sec: None,
                 })
                 .await
                 .unwrap();
@@ -376,6 +389,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         .collect(),
                     vaa,
                     transaction_options: TransactionOptions::default(),
+                    wait_final_outcome_timeout_sec: None,
                 })
                 .await
                 .unwrap();
@@ -434,6 +448,8 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             token,
             amount,
             recipient,
+            fee,
+            native_fee,
             config_cli,
         } => {
             omni_connector(network, config_cli)
@@ -441,6 +457,8 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                     token: token.parse().unwrap(),
                     amount,
                     recipient,
+                    fee,
+                    native_fee,
                     message: String::new(),
                 })
                 .await
@@ -449,12 +467,16 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
         OmniConnectorSubCommand::SolanaInitTransferSol {
             amount,
             recipient,
+            fee,
+            native_fee,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .init_transfer(InitTransferArgs::SolanaInitTransferSol {
                     amount,
                     recipient,
+                    fee,
+                    native_fee,
                     message: String::new(),
                 })
                 .await
@@ -488,6 +510,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         chain_kind: chain,
                         tx_hash: TxHash::from_str(&tx_hash).expect("Invalid tx_hash"),
                         transaction_options: TransactionOptions::default(),
+                        wait_final_outcome_timeout_sec: None,
                     })
                     .await
                     .unwrap();
@@ -498,6 +521,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                         chain_kind: chain,
                         tx_hash,
                         transaction_options: TransactionOptions::default(),
+                        wait_final_outcome_timeout_sec: None,
                     })
                     .await
                     .unwrap();

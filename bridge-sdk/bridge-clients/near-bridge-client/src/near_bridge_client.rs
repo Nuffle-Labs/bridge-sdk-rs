@@ -30,10 +30,10 @@ const INIT_TRANSFER_GAS: u64 = 300_000_000_000_000;
 const INIT_TRANSFER_DEPOSIT: u128 = 1;
 
 const FIN_TRANSFER_GAS: u64 = 300_000_000_000_000;
-const FIN_TRANSFER_DEPOSIT: u128 = 60_000_000_000_000_000_000_000;
+const FIN_TRANSFER_DEPOSIT: u128 = 600_000_000_000_000_000_000;
 
 const CLAIM_FEE_GAS: u64 = 300_000_000_000_000;
-const CLAIM_FEE_DEPOSIT: u128 = 200_000_000_000_000_000_000_000;
+const CLAIM_FEE_DEPOSIT: u128 = 1;
 
 pub struct TransactionOptions {
     pub nonce: Option<u64>,
@@ -188,6 +188,7 @@ impl NearBridgeClient {
         token_id: String,
         amount: u128,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker = self.token_locker_id()?;
@@ -198,7 +199,7 @@ impl NearBridgeClient {
                 signer: self.signer()?,
                 nonce: transaction_options.nonce,
                 receiver_id: token_id.parse().map_err(|err| {
-                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {err}"))
                 })?,
                 method_name: "storage_deposit".to_string(),
                 args: serde_json::json!({
@@ -210,6 +211,7 @@ impl NearBridgeClient {
                 deposit: amount,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -225,6 +227,7 @@ impl NearBridgeClient {
         &self,
         amount: u128,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -245,6 +248,7 @@ impl NearBridgeClient {
                 deposit: amount,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -293,6 +297,7 @@ impl NearBridgeClient {
         &self,
         token_id: String,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
@@ -312,6 +317,7 @@ impl NearBridgeClient {
                 deposit: self.get_required_deposit_for_mpc().await?,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -326,6 +332,7 @@ impl NearBridgeClient {
         chain_kind: ChainKind,
         vaa: &str,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -353,6 +360,7 @@ impl NearBridgeClient {
                 deposit: DEPLOY_TOKEN_DEPOSIT,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -369,6 +377,7 @@ impl NearBridgeClient {
         &self,
         args: DeployTokenArgs,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -386,6 +395,7 @@ impl NearBridgeClient {
                 deposit: DEPLOY_TOKEN_DEPOSIT,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -403,6 +413,7 @@ impl NearBridgeClient {
         &self,
         args: BindTokenArgs,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -420,6 +431,7 @@ impl NearBridgeClient {
                 deposit: BIND_TOKEN_DEPOSIT,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -435,6 +447,7 @@ impl NearBridgeClient {
         fee_recipient: Option<AccountId>,
         fee: Option<Fee>,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
@@ -456,6 +469,7 @@ impl NearBridgeClient {
                 deposit: self.get_required_deposit_for_mpc().await?,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -500,6 +514,7 @@ impl NearBridgeClient {
         amount: u128,
         receiver: OmniAddress,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker = self.token_locker_id()?;
@@ -522,6 +537,7 @@ impl NearBridgeClient {
                     nonce: transaction_options.nonce,
                     wait_until: TxExecutionStatus::Final,
                 },
+                wait_final_outcome_timeout_sec,
             )
             .await?;
         }
@@ -536,7 +552,7 @@ impl NearBridgeClient {
                 // Increment nonce since previous was used for storage deposit
                 nonce: transaction_options.nonce.map(|nonce| nonce + 1),
                 receiver_id: token_id.parse().map_err(|err| {
-                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {}", err))
+                    BridgeSdkError::ConfigError(format!("Failed to parse token_id: {err}"))
                 })?,
                 method_name: "ft_transfer_call".to_string(),
                 args: serde_json::json!({
@@ -555,6 +571,7 @@ impl NearBridgeClient {
                 deposit: INIT_TRANSFER_DEPOSIT,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -568,8 +585,16 @@ impl NearBridgeClient {
         &self,
         args: FinTransferArgs,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
+
+        let mut required_deposit = FIN_TRANSFER_DEPOSIT;
+        for storage_deposit_action in args.storage_deposit_actions.clone() {
+            if let Some(amount) = storage_deposit_action.storage_deposit_amount {
+                required_deposit += amount;
+            }
+        }
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
@@ -581,9 +606,10 @@ impl NearBridgeClient {
                 args: borsh::to_vec(&args)
                     .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
                 gas: FIN_TRANSFER_GAS,
-                deposit: FIN_TRANSFER_DEPOSIT,
+                deposit: required_deposit,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 
@@ -600,6 +626,7 @@ impl NearBridgeClient {
         &self,
         args: ClaimFeeArgs,
         transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let token_locker_id = self.token_locker_id()?;
@@ -617,6 +644,7 @@ impl NearBridgeClient {
                 deposit: CLAIM_FEE_DEPOSIT,
             },
             transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
         )
         .await?;
 

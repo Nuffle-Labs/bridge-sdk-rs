@@ -85,8 +85,7 @@ impl EvmBridgeClient {
         } = transfer_log
         else {
             return Err(BridgeSdkError::InvalidArgument(format!(
-                "Expected LogMetadataEvent but got {:?}",
-                transfer_log
+                "Expected LogMetadataEvent but got {transfer_log:?}"
             )));
         };
 
@@ -198,8 +197,7 @@ impl EvmBridgeClient {
         } = transfer_log
         else {
             return Err(BridgeSdkError::InvalidArgument(format!(
-                "Expected SignTransferEvent but got {:?}",
-                transfer_log
+                "Expected SignTransferEvent but got {transfer_log:?}"
             )));
         };
 
