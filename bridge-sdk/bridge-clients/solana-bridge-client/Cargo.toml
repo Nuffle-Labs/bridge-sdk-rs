@@ -14,6 +14,7 @@ spl-token.workspace = true
 spl-token-2022.workspace = true
 spl-associated-token-account.workspace = true
 thiserror.workspace = true
+openssl-sys.workspace = true
 
 [lib]
 path = "src/solana_bridge_client.rs"
