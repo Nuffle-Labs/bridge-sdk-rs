@@ -305,10 +305,15 @@ impl SolanaBridgeClient {
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], program_id);
         let (sol_vault, _) = Pubkey::find_program_address(&[b"sol_vault"], program_id);
 
+        let token_program_id = self.get_mint_owner(token).await?;
+        if token_program_id != spl_token::ID && token_program_id != spl_token_2022::ID {
+            return Err(SolanaBridgeClientError::InvalidArgument(format!("Not a Solana token: {token}")));
+        }
+
         let (from_token_account, _) = Pubkey::find_program_address(
             &[
                 keypair.pubkey().as_ref(),
-                spl_token::ID.as_ref(),
+                token_program_id.as_ref(),
                 token.as_ref(),
             ],
             &spl_associated_token_account::ID,
@@ -358,7 +363,7 @@ impl SolanaBridgeClient {
                 AccountMeta::new_readonly(sysvar::rent::ID, false),
                 AccountMeta::new_readonly(*wormhole_core, false),
                 AccountMeta::new_readonly(system_program::ID, false),
-                AccountMeta::new_readonly(spl_token::ID, false),
+                AccountMeta::new_readonly(token_program_id, false),
             ],
         );
 
@@ -441,10 +446,16 @@ impl SolanaBridgeClient {
         );
         let recipient = data.payload.recipient;
         let (authority, _) = Pubkey::find_program_address(&[b"authority"], program_id);
+
+        let token_program_id = self.get_mint_owner(solana_token).await?;
+        if token_program_id != spl_token::ID && token_program_id != spl_token_2022::ID {
+            return Err(SolanaBridgeClientError::InvalidArgument(format!("Not a Solana token: {solana_token}")));
+        }
+
         let (token_account, _) = Pubkey::find_program_address(
             &[
                 recipient.as_ref(),
-                spl_token::ID.as_ref(),
+                token_program_id.as_ref(),
                 solana_token.as_ref(),
             ],
             &spl_associated_token_account::ID,
@@ -499,7 +510,7 @@ impl SolanaBridgeClient {
                 AccountMeta::new_readonly(system_program::ID, false),
                 AccountMeta::new_readonly(spl_associated_token_account::ID, false),
                 AccountMeta::new_readonly(system_program::ID, false),
-                AccountMeta::new_readonly(spl_token::ID, false),
+                AccountMeta::new_readonly(token_program_id, false),
             ],
         );
 
@@ -609,11 +620,11 @@ impl SolanaBridgeClient {
         &self,
         token: Pubkey,
     ) -> Result<COption<Pubkey>, SolanaBridgeClientError> {
+        const MINT_BASIC_DATA_SIZE: usize = 82;
+
         let client = self.client()?;
 
         let mint_account = client.get_account(&token).await?;
-
-        const MINT_BASIC_DATA_SIZE: usize = 82;
         let mint_data = Mint::unpack(&mint_account.data[..MINT_BASIC_DATA_SIZE])
             .map_err(|e| SolanaBridgeClientError::InvalidAccountData(e.to_string()))?;
 
