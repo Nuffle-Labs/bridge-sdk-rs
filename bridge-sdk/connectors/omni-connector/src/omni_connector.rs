@@ -103,6 +103,8 @@ pub enum InitTransferArgs {
         token: String,
         amount: u128,
         recipient: OmniAddress,
+        fee: u128,
+        native_fee: u128,
         transaction_options: TransactionOptions,
         wait_final_outcome_timeout_sec: Option<u64>,
     },
@@ -317,11 +319,14 @@ impl OmniConnector {
             .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn near_init_transfer(
         &self,
         token_id: String,
         amount: u128,
         receiver: OmniAddress,
+        fee: u128,
+        native_fee: u128,
         transaction_options: TransactionOptions,
         wait_final_outcome_timeout_sec: Option<u64>,
     ) -> Result<CryptoHash> {
@@ -331,6 +336,8 @@ impl OmniConnector {
                 token_id,
                 amount,
                 receiver,
+                fee,
+                native_fee,
                 transaction_options,
                 wait_final_outcome_timeout_sec,
             )
@@ -966,6 +973,8 @@ impl OmniConnector {
                 token: near_token_id,
                 amount,
                 recipient: receiver,
+                fee,
+                native_fee,
                 transaction_options,
                 wait_final_outcome_timeout_sec,
             } => self
@@ -973,6 +982,8 @@ impl OmniConnector {
                     near_token_id,
                     amount,
                     receiver,
+                    fee,
+                    native_fee,
                     transaction_options,
                     wait_final_outcome_timeout_sec,
                 )
