@@ -56,7 +56,7 @@ pub enum OmniConnectorSubCommand {
     #[clap(about = "Sign a transfer on NEAR")]
     NearSignTransfer {
         #[clap(long, help = "Origin chain ID of transfer to sign")]
-        origin_chain_id: u8,
+        origin_chain: ChainKind,
         #[clap(long, help = "Origin nonce of transfer to sign")]
         origin_nonce: u64,
         #[clap(long, help = "Fee recipient account ID")]
@@ -328,7 +328,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                 .unwrap();
         }
         OmniConnectorSubCommand::NearSignTransfer {
-            origin_chain_id,
+            origin_chain,
             origin_nonce,
             fee_recipient,
             fee,
@@ -338,7 +338,7 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
             omni_connector(network, config_cli)
                 .near_sign_transfer(
                     TransferId {
-                        origin_chain: ChainKind::try_from(origin_chain_id).unwrap(),
+                        origin_chain,
                         origin_nonce,
                     },
                     fee_recipient,

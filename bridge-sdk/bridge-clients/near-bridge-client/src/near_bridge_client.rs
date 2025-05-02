@@ -20,18 +20,14 @@ const STORAGE_DEPOSIT_GAS: u64 = 10_000_000_000_000;
 const LOG_METADATA_GAS: u64 = 300_000_000_000_000;
 
 const DEPLOY_TOKEN_GAS: u64 = 300_000_000_000_000;
-const DEPLOY_TOKEN_DEPOSIT: u128 = 4_000_000_000_000_000_000_000_000;
 
 const BIND_TOKEN_GAS: u64 = 300_000_000_000_000;
-const BIND_TOKEN_DEPOSIT: u128 = 200_000_000_000_000_000_000_000;
 
 const SIGN_TRANSFER_GAS: u64 = 300_000_000_000_000;
 
 const INIT_TRANSFER_GAS: u64 = 300_000_000_000_000;
-const FT_TRANSFER_DEPOSIT: u128 = 1;
 
 const FIN_TRANSFER_GAS: u64 = 300_000_000_000_000;
-const FIN_TRANSFER_DEPOSIT: u128 = 600_000_000_000_000_000_000;
 
 const FIN_BTC_TRANSFER_GAS: u64 = 300_000_000_000_000;
 
@@ -41,6 +37,7 @@ const CLAIM_FEE_DEPOSIT: u128 = 1;
 const FAST_FIN_TRANSFER_GAS: u64 = 300_000_000_000_000;
 
 const MPC_DEPOSIT: u128 = 1;
+const FT_TRANSFER_DEPOSIT: u128 = 1;
 
 #[derive(Clone)]
 pub struct TransactionOptions {
@@ -391,6 +388,7 @@ impl NearBridgeClient {
     }
 
     /// Deploys a token on the target chain using the vaa proof
+    #[tracing::instrument(skip_all, name = "DEPLOY TOKEN")]
     pub async fn deploy_token_with_vaa_proof(
         &self,
         chain_kind: ChainKind,
@@ -399,6 +397,10 @@ impl NearBridgeClient {
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let omni_bridge_id = self.omni_bridge_id()?;
+
+        let deposit = self
+            .get_required_balance_for_deploy_token()
+            .await?;
 
         let prover_args = omni_types::prover_args::WormholeVerifyProofArgs {
             proof_kind: omni_types::prover_result::ProofKind::LogMetadata,
@@ -420,7 +422,7 @@ impl NearBridgeClient {
                 args: borsh::to_vec(&args)
                     .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
                 gas: DEPLOY_TOKEN_GAS,
-                deposit: DEPLOY_TOKEN_DEPOSIT,
+                deposit,
             },
             transaction_options.wait_until,
             transaction_options.wait_final_outcome_timeout_sec,
@@ -436,6 +438,7 @@ impl NearBridgeClient {
     }
 
     /// Deploys a token on the target chain using the evm proof
+    #[tracing::instrument(skip_all, name = "DEPLOY TOKEN")]
     pub async fn deploy_token_with_evm_proof(
         &self,
         args: DeployTokenArgs,
@@ -443,6 +446,10 @@ impl NearBridgeClient {
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
         let omni_bridge_id = self.omni_bridge_id()?;
+
+        let deposit = self
+            .get_required_balance_for_deploy_token()
+            .await?;
 
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
@@ -454,7 +461,7 @@ impl NearBridgeClient {
                 args: borsh::to_vec(&args)
                     .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
                 gas: DEPLOY_TOKEN_GAS,
-                deposit: DEPLOY_TOKEN_DEPOSIT,
+                deposit,
             },
             transaction_options.wait_until,
             transaction_options.wait_final_outcome_timeout_sec,
@@ -479,6 +486,10 @@ impl NearBridgeClient {
         let endpoint = self.endpoint()?;
         let omni_bridge_id = self.omni_bridge_id()?;
 
+        let deposit = self
+            .get_required_balance_for_bind_token()
+            .await?;
+
         let tx_hash = near_rpc_client::change_and_wait(
             endpoint,
             ChangeRequest {
@@ -489,7 +500,7 @@ impl NearBridgeClient {
                 args: borsh::to_vec(&args)
                     .map_err(|err| BridgeSdkError::UnknownError(err.to_string()))?,
                 gas: BIND_TOKEN_GAS,
-                deposit: BIND_TOKEN_DEPOSIT,
+                deposit,
             },
             transaction_options.wait_until,
             transaction_options.wait_final_outcome_timeout_sec,
@@ -540,32 +551,6 @@ impl NearBridgeClient {
         Ok(tx_hash)
     }
 
-    /// Gets the required balance for the init transfer
-    pub async fn get_required_balance_for_init_transfer(
-        &self,
-        recipient: &OmniAddress,
-        sender: &OmniAddress,
-    ) -> Result<u128> {
-        let endpoint = self.endpoint()?;
-        let omni_bridge_id = self.omni_bridge_id()?;
-
-        let response = near_rpc_client::view(
-            endpoint,
-            ViewRequest {
-                contract_account_id: omni_bridge_id,
-                method_name: "required_balance_for_init_transfer".to_string(),
-                args: serde_json::json!({
-                    "recipient": recipient,
-                    "sender": format!("near:{}", sender)
-                }),
-            },
-        )
-        .await?;
-
-        let required_balance = serde_json::from_slice::<NearToken>(&response)?;
-        Ok(required_balance.as_yoctonear())
-    }
-
     /// Transfers NEP-141 tokens to OmniBridge. The proof from this transaction is then used to mint the corresponding tokens on Ethereum
     #[tracing::instrument(skip_all, name = "NEAR INIT TRANSFER")]
     #[allow(clippy::too_many_arguments)]
@@ -582,10 +567,7 @@ impl NearBridgeClient {
         let omni_bridge_id = self.omni_bridge_id()?;
 
         let required_balance = self
-            .get_required_balance_for_init_transfer(
-                &receiver,
-                &OmniAddress::Near(self.account_id()?),
-            )
+            .get_required_balance_for_init_transfer()
             .await?;
 
         let nonce = if self
@@ -639,7 +621,10 @@ impl NearBridgeClient {
     ) -> Result<CryptoHash> {
         let endpoint = self.endpoint()?;
 
-        let mut required_deposit = FIN_TRANSFER_DEPOSIT;
+        let mut required_deposit = self
+            .get_required_balance_for_fin_transfer()
+            .await?;
+
         for storage_deposit_action in args.storage_deposit_actions.clone() {
             if let Some(amount) = storage_deposit_action.storage_deposit_amount {
                 required_deposit += amount;
@@ -734,25 +719,6 @@ impl NearBridgeClient {
         Ok(tx_hash)
     }
 
-    /// Gets the required balance for the fast fin transfer
-    pub async fn get_required_balance_for_fast_fin_transfer(&self) -> Result<u128> {
-        let endpoint = self.endpoint()?;
-        let omni_bridge_id = self.omni_bridge_id()?;
-
-        let response = near_rpc_client::view(
-            endpoint,
-            ViewRequest {
-                contract_account_id: omni_bridge_id,
-                method_name: "required_balance_for_fast_transfer".to_string(),
-                args: serde_json::json!({}),
-            },
-        )
-        .await?;
-
-        let required_balance = serde_json::from_slice::<NearToken>(&response)?;
-        Ok(required_balance.as_yoctonear())
-    }
-
     /// Fast finalize transfer on NEAR
     #[tracing::instrument(skip_all, name = "FAST FIN TRANSFER")]
     pub async fn fast_fin_transfer(
@@ -812,6 +778,44 @@ impl NearBridgeClient {
             "Sent fast finalize transfer transaction"
         );
         Ok(tx_hash)
+    }
+
+    pub async fn get_required_balance(&self, method_name: &str) -> Result<u128> {
+        let endpoint = self.endpoint()?;
+        let omni_bridge_id = self.omni_bridge_id()?;
+
+        let response = near_rpc_client::view(
+            endpoint,
+            ViewRequest {
+                contract_account_id: omni_bridge_id,
+                method_name: method_name.to_string(),
+                args: serde_json::json!({}),
+            },
+        )
+        .await?;
+
+        let required_balance = serde_json::from_slice::<NearToken>(&response)?;
+        Ok(required_balance.as_yoctonear())            
+    }
+
+    pub async fn get_required_balance_for_deploy_token(&self) -> Result<u128> {
+        self.get_required_balance("required_balance_for_deploy_token").await
+    }
+
+    pub async fn get_required_balance_for_bind_token(&self) -> Result<u128> {
+        self.get_required_balance("required_balance_for_bind_token").await
+    }
+
+    pub async fn get_required_balance_for_init_transfer(&self) -> Result<u128> {
+        self.get_required_balance("required_balance_for_init_transfer").await
+    }
+
+    pub async fn get_required_balance_for_fin_transfer(&self) -> Result<u128> {
+        self.get_required_balance("required_balance_for_fin_transfer").await
+    }
+
+    pub async fn get_required_balance_for_fast_fin_transfer(&self) -> Result<u128> {
+        self.get_required_balance("required_balance_for_fast_transfer").await
     }
 
     pub async fn deposit_storage_if_required(
