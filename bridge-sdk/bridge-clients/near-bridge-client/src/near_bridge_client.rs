@@ -4,6 +4,7 @@ use bridge_connector_common::result::{BridgeSdkError, Result};
 use derive_builder::Builder;
 use near_contract_standards::storage_management::StorageBalance;
 use near_crypto::{SecretKey, Signer};
+use near_primitives::types::Gas;
 use near_primitives::{hash::CryptoHash, types::AccountId, views::TxExecutionStatus};
 use near_rpc_client::{ChangeRequest, ViewRequest};
 use near_token::NearToken;
@@ -12,6 +13,7 @@ use omni_types::{
     ChainKind, Fee, OmniAddress, TransferId, TransferMessage,
 };
 use serde_json::json;
+use serde_with::{serde_as, DisplayFromStr};
 
 const STORAGE_DEPOSIT_GAS: u64 = 10_000_000_000_000;
 
@@ -30,6 +32,8 @@ const FT_TRANSFER_DEPOSIT: u128 = 1;
 
 const FIN_TRANSFER_GAS: u64 = 300_000_000_000_000;
 const FIN_TRANSFER_DEPOSIT: u128 = 600_000_000_000_000_000_000;
+
+const FIN_BTC_TRANSFER_GAS: u64 = 300_000_000_000_000;
 
 const CLAIM_FEE_GAS: u64 = 300_000_000_000_000;
 const CLAIM_FEE_DEPOSIT: u128 = 1;
@@ -60,6 +64,36 @@ struct StorageBalanceBounds {
     min: NearToken,
 }
 
+#[serde_as]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct PostAction {
+    pub receiver_id: AccountId,
+    #[serde_as(as = "DisplayFromStr")]
+    pub amount: u128,
+    pub memo: Option<String>,
+    pub msg: String,
+    pub gas: Option<Gas>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct DepositMsg {
+    pub recipient_id: AccountId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_actions: Option<Vec<PostAction>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_msg: Option<String>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct FinBtcTransferArgs {
+    pub deposit_msg: DepositMsg,
+    pub tx_bytes: Vec<u8>,
+    pub vout: usize,
+    pub tx_block_blockhash: String,
+    pub tx_index: u64,
+    pub merkle_proof: Vec<String>,
+}
+
 #[derive(serde::Serialize)]
 pub struct FastFinTransferArgs {
     pub token_id: AccountId,
@@ -83,6 +117,8 @@ pub struct NearBridgeClient {
     signer: Option<String>,
     #[doc = r"OmniBridge account id on Near"]
     omni_bridge_id: Option<String>,
+    #[doc = r"BTC Connector account id on Near"]
+    btc_connector: Option<String>,
 }
 
 impl NearBridgeClient {
@@ -634,6 +670,39 @@ impl NearBridgeClient {
         Ok(tx_hash)
     }
 
+    /// Finalizes a BTC transfer by calling verify_deposit on the BTC connector contract.
+    #[tracing::instrument(skip_all, name = "NEAR FIN BTC TRANSFER")]
+    pub async fn fin_btc_transfer(
+        &self,
+        args: FinBtcTransferArgs,
+        transaction_options: TransactionOptions,
+        wait_final_outcome_timeout_sec: Option<u64>,
+    ) -> Result<CryptoHash> {
+        let endpoint = self.endpoint()?;
+        let btc_connector = self.btc_connector()?;
+        let tx_hash = near_rpc_client::change_and_wait(
+            endpoint,
+            ChangeRequest {
+                signer: self.signer()?,
+                nonce: transaction_options.nonce,
+                receiver_id: btc_connector,
+                method_name: "verify_deposit".to_string(),
+                args: json!(args).to_string().into_bytes(),
+                gas: FIN_BTC_TRANSFER_GAS,
+                deposit: 0,
+            },
+            transaction_options.wait_until,
+            wait_final_outcome_timeout_sec,
+        )
+        .await?;
+
+        tracing::info!(
+            tx_hash = tx_hash.to_string(),
+            "Sent BTC finalize transfer transaction"
+        );
+        Ok(tx_hash)
+    }
+
     /// Claims fee on NEAR chain
     #[tracing::instrument(skip_all, name = "CLAIM FEE")]
     pub async fn claim_fee(
@@ -859,5 +928,17 @@ impl NearBridgeClient {
             ))?
             .parse::<AccountId>()
             .map_err(|_| BridgeSdkError::ConfigError("Invalid omni bridge account id".to_string()))
+    }
+
+    pub fn btc_connector(&self) -> Result<AccountId> {
+        self.btc_connector
+            .as_ref()
+            .ok_or(BridgeSdkError::ConfigError(
+                "BTC Connector account id is not set".to_string(),
+            ))?
+            .parse::<AccountId>()
+            .map_err(|_| {
+                BridgeSdkError::ConfigError("Invalid btc connector account id".to_string())
+            })
     }
 }
