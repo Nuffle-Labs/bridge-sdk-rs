@@ -2,7 +2,7 @@ use std::{path::Path, str::FromStr};
 
 use clap::Subcommand;
 
-use btc_bridge_client::BtcBridgeClient;
+use btc_bridge_client::{BtcBridgeClient, BtcOutpoint};
 use ethers_core::types::TxHash;
 use evm_bridge_client::EvmBridgeClientBuilder;
 use near_bridge_client::{NearBridgeClientBuilder, TransactionOptions};
@@ -265,8 +265,56 @@ pub enum OmniConnectorSubCommand {
         btc_tx_hash: String,
         #[clap(short, long, help = "The block height of bitcoin tx hash")]
         tx_block_height: usize,
+        #[clap(
+            short,
+            long,
+            help = "The index of the output in the Bitcoin transaction",
+            default_value = "0"
+        )]
+        vout: usize,
         #[clap(short, long, help = "The BTC recipient on NEAR")]
         recipient_id: String,
+        #[clap(
+            short,
+            long,
+            help = "The amount to be transferred, in satoshis",
+            default_value = "0"
+        )]
+        amount: u128,
+        #[clap(
+            short,
+            long,
+            help = "The Omni Bridge Fee in satoshi",
+            default_value = "0"
+        )]
+        fee: u128,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+    #[clap(
+        about = "Requests a Bitcoin address for transferring the specified amount to the given recipient on the Bitcoin network"
+    )]
+    GetBitcoinAddress {
+        #[clap(
+            short,
+            long,
+            help = "The recipient in format <chain_id>:<address> for transferring using OmniBridge"
+        )]
+        recipient_id: String,
+        #[clap(
+            short,
+            long,
+            help = "The amount to be transferred, in satoshis",
+            default_value = "0"
+        )]
+        amount: u128,
+        #[clap(
+            short,
+            long,
+            help = "The Omni Bridge Fee in satoshi",
+            default_value = "0"
+        )]
+        fee: u128,
         #[command(flatten)]
         config_cli: CliConfig,
     },
@@ -609,20 +657,41 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
         OmniConnectorSubCommand::NearFinTransferBTC {
             btc_tx_hash,
             tx_block_height,
+            vout,
             recipient_id,
+            amount,
+            fee,
             config_cli,
         } => {
             omni_connector(network, config_cli)
                 .near_fin_transfer_btc(
-                    btc_tx_hash,
-                    tx_block_height,
-                    0,
+                    BtcOutpoint {
+                        tx_hash: btc_tx_hash,
+                        block_height: tx_block_height,
+                        vout,
+                    },
                     recipient_id,
+                    amount,
+                    fee,
+
                     TransactionOptions::default(),
                     None,
                 )
                 .await
                 .unwrap();
+        }
+        OmniConnectorSubCommand::GetBitcoinAddress {
+            recipient_id,
+            amount,
+            fee,
+            config_cli,
+        } => {
+            let btc_address = omni_connector(network, config_cli)
+                .get_btc_address(&recipient_id, amount, fee)
+                .await
+                .unwrap();
+
+            tracing::info!("BTC Address: {btc_address}");
         }
     }
 }
