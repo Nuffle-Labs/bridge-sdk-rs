@@ -44,6 +44,23 @@ pub enum OmniConnectorSubCommand {
         #[command(flatten)]
         config_cli: CliConfig,
     },
+
+    #[clap(about = "Check if transfer is finalised")]
+    IsTransferFinalised {
+        #[clap(
+            short,
+            long,
+            help = "Origin chain of the transfer is needed to check if transfer was finalized on NEAR"
+        )]
+        origin_chain: Option<ChainKind>,
+        #[clap(short, long, help = "Destination chain of the transfer")]
+        destination_chain: ChainKind,
+        #[clap(short, long, help = "Destination nonce of the transfer")]
+        nonce: u64,
+        #[command(flatten)]
+        config_cli: CliConfig,
+    },
+
     #[clap(about = "Deposit storage for a token on NEAR")]
     NearStorageDeposit {
         #[clap(short, long, help = "Token to deposit storage for")]
@@ -377,6 +394,19 @@ pub async fn match_subcommand(cmd: OmniConnectorSubCommand, network: Network) {
                     .unwrap();
             }
         },
+        OmniConnectorSubCommand::IsTransferFinalised {
+            origin_chain,
+            destination_chain,
+            nonce,
+            config_cli,
+        } => {
+            let is_transfer_finalised = omni_connector(network, config_cli)
+                .is_transfer_finalised(origin_chain, destination_chain, nonce)
+                .await
+                .unwrap();
+
+            tracing::info!("Is transfer finalised: {}", is_transfer_finalised);
+        }
         OmniConnectorSubCommand::NearStorageDeposit {
             token,
             amount,
