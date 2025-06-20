@@ -11,14 +11,16 @@ use omni_types::locker_args::{ClaimFeeArgs, StorageDepositAction};
 use omni_types::prover_args::{EvmVerifyProofArgs, WormholeVerifyProofArgs};
 use omni_types::prover_result::ProofKind;
 use omni_types::{near_events::OmniBridgeEvent, ChainKind};
-use omni_types::{EvmAddress, Fee, OmniAddress, TransferMessage, H160};
+use omni_types::{
+    EvmAddress, FastTransferId, FastTransferStatus, Fee, OmniAddress, TransferMessage, H160,
+};
 
 use btc_bridge_client::BtcBridgeClient;
-use evm_bridge_client::EvmBridgeClient;
+use evm_bridge_client::{EvmBridgeClient, InitTransferFilter};
 use near_bridge_client::btc_connector::{
     BtcVerifyWithdrawArgs, DepositMsg, FinBtcTransferArgs, TokenReceiverMessage,
 };
-use near_bridge_client::{NearBridgeClient, TransactionOptions};
+use near_bridge_client::{Decimals, NearBridgeClient, TransactionOptions};
 use solana_bridge_client::{
     DeployTokenData, DepositPayload, FinalizeDepositData, MetadataPayload, SolanaBridgeClient,
     TransferId,
@@ -199,6 +201,11 @@ impl OmniConnector {
         near_bridge_client.get_transfer_message(transfer_id).await
     }
 
+    pub async fn near_get_token_decimals(&self, token_address: OmniAddress) -> Result<Decimals> {
+        let near_bridge_client = self.near_bridge_client()?;
+        near_bridge_client.get_token_decimals(token_address).await
+    }
+
     pub async fn near_is_transfer_finalised(
         &self,
         transfer_id: omni_types::TransferId,
@@ -215,6 +222,26 @@ impl OmniConnector {
     pub async fn near_get_native_token_id(&self, origin_chain: ChainKind) -> Result<AccountId> {
         let near_bridge_client = self.near_bridge_client()?;
         near_bridge_client.get_native_token_id(origin_chain).await
+    }
+
+    pub async fn near_get_fast_transfer_status(
+        &self,
+        fast_transfer_id: FastTransferId,
+    ) -> Result<Option<FastTransferStatus>> {
+        let near_bridge_client = self.near_bridge_client()?;
+        near_bridge_client
+            .get_fast_transfer_status(fast_transfer_id)
+            .await
+    }
+
+    pub async fn near_is_fast_transfer_finalised(
+        &self,
+        fast_transfer_id: FastTransferId,
+    ) -> Result<bool> {
+        let near_bridge_client = self.near_bridge_client()?;
+        near_bridge_client
+            .is_fast_transfer_finalised(fast_transfer_id)
+            .await
     }
 
     pub async fn near_log_metadata(
@@ -615,13 +642,12 @@ impl OmniConnector {
         }
 
         let near_bridge_client = self.near_bridge_client()?;
-        let evm_bridge_client = self.evm_bridge_client(chain_kind)?;
 
         let tx_hash = TxHash::from_str(&tx_hash).map_err(|e| {
             BridgeSdkError::InvalidArgument(format!("Failed to parse tx hash: {e}"))
         })?;
 
-        let transfer_event = evm_bridge_client.get_transfer_event(tx_hash).await?;
+        let transfer_event = self.evm_get_transfer_event(chain_kind, tx_hash).await?;
 
         let recipient = OmniAddress::from_str(&transfer_event.recipient).map_err(|_| {
             BridgeSdkError::InvalidArgument(format!(
@@ -629,26 +655,49 @@ impl OmniConnector {
                 transfer_event.recipient
             ))
         })?;
+        let token_address =
+            OmniAddress::new_from_evm_address(chain_kind, H160(transfer_event.token_address.0))
+                .map_err(|_| {
+                    BridgeSdkError::InvalidArgument(format!(
+                        "Failed to parse token address: {}",
+                        transfer_event.token_address
+                    ))
+                })?;
+
         let token_id = near_bridge_client
-            .get_token_id(
-                OmniAddress::new_from_evm_address(chain_kind, H160(transfer_event.token_address.0))
-                    .map_err(|_| {
-                        BridgeSdkError::InvalidArgument(format!(
-                            "Failed to parse token address: {}",
-                            transfer_event.token_address
-                        ))
-                    })?,
-            )
+            .get_token_id(token_address.clone())
             .await?;
+
+        let decimals = self.near_get_token_decimals(token_address).await?;
+
+        let amount = self
+            .denormalize_amount(&decimals, transfer_event.amount)
+            .await
+            .map_err(|e| {
+                BridgeSdkError::InvalidArgument(format!(
+                    "Failed to denormalize amount for token: {}: {e}",
+                    transfer_event.token_address
+                ))
+            })?;
+
+        let transferred_fee = self
+            .denormalize_amount(&decimals, transfer_event.fee)
+            .await
+            .map_err(|e| {
+                BridgeSdkError::InvalidArgument(format!(
+                    "Failed to denormalize fee for token: {}: {e}",
+                    transfer_event.token_address
+                ))
+            })?;
 
         near_bridge_client
             .fast_fin_transfer(
                 near_bridge_client::FastFinTransferArgs {
                     token_id,
-                    amount: transfer_event.amount,
+                    amount,
                     recipient,
                     fee: Fee {
-                        fee: transfer_event.fee.into(),
+                        fee: transferred_fee.into(),
                         native_fee: transfer_event.native_token_fee.into(),
                     },
                     transfer_id: omni_types::TransferId {
@@ -671,6 +720,20 @@ impl OmniConnector {
     ) -> Result<bool> {
         let evm_bridge_client = self.evm_bridge_client(chain_kind)?;
         evm_bridge_client.is_transfer_finalised(nonce).await
+    }
+
+    pub async fn evm_get_last_block_number(&self, chain_kind: ChainKind) -> Result<u64> {
+        let evm_bridge_client = self.evm_bridge_client(chain_kind)?;
+        evm_bridge_client.get_last_block_number().await
+    }
+
+    pub async fn evm_get_transfer_event(
+        &self,
+        chain_kind: ChainKind,
+        tx_hash: TxHash,
+    ) -> Result<InitTransferFilter> {
+        let evm_bridge_client = self.evm_bridge_client(chain_kind)?;
+        evm_bridge_client.get_transfer_event(tx_hash).await
     }
 
     pub async fn evm_log_metadata(
@@ -1344,6 +1407,12 @@ impl OmniConnector {
     pub async fn wormhole_get_vaa_by_tx_hash(&self, tx_hash: String) -> Result<String> {
         let wormhole_bridge_client = self.wormhole_bridge_client()?;
         wormhole_bridge_client.get_vaa_by_tx_hash(tx_hash).await
+    }
+
+    pub async fn denormalize_amount(&self, decimals: &Decimals, amount: u128) -> Result<u128> {
+        amount
+            .checked_mul(10_u128.pow((decimals.origin_decimals - decimals.decimals).into()))
+            .ok_or_else(|| BridgeSdkError::UnknownError("Denormalization overflow".to_string()))
     }
 
     pub fn near_bridge_client(&self) -> Result<&NearBridgeClient> {
