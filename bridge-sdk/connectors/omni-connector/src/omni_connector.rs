@@ -29,6 +29,7 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signature};
 use wormhole_bridge_client::WormholeBridgeClient;
 
+#[allow(clippy::struct_field_names)]
 #[derive(Builder, Default)]
 #[builder(pattern = "owned")]
 pub struct OmniConnector {
@@ -670,34 +671,18 @@ impl OmniConnector {
 
         let decimals = self.near_get_token_decimals(token_address).await?;
 
-        let amount = self
-            .denormalize_amount(&decimals, transfer_event.amount)
-            .await
-            .map_err(|e| {
-                BridgeSdkError::InvalidArgument(format!(
-                    "Failed to denormalize amount for token: {}: {e}",
-                    transfer_event.token_address
-                ))
-            })?;
-
-        let transferred_fee = self
-            .denormalize_amount(&decimals, transfer_event.fee)
-            .await
-            .map_err(|e| {
-                BridgeSdkError::InvalidArgument(format!(
-                    "Failed to denormalize fee for token: {}: {e}",
-                    transfer_event.token_address
-                ))
-            })?;
+        let amount_to_send = self
+            .denormalize_amount(&decimals, transfer_event.amount)?;
 
         near_bridge_client
             .fast_fin_transfer(
                 near_bridge_client::FastFinTransferArgs {
                     token_id,
-                    amount,
+                    amount_to_send,
                     recipient,
+                    amount: transfer_event.amount,
                     fee: Fee {
-                        fee: transferred_fee.into(),
+                        fee: transfer_event.fee.into(),
                         native_fee: transfer_event.native_token_fee.into(),
                     },
                     transfer_id: omni_types::TransferId {
@@ -1409,7 +1394,7 @@ impl OmniConnector {
         wormhole_bridge_client.get_vaa_by_tx_hash(tx_hash).await
     }
 
-    pub async fn denormalize_amount(&self, decimals: &Decimals, amount: u128) -> Result<u128> {
+    pub fn denormalize_amount(&self, decimals: &Decimals, amount: u128) -> Result<u128> {
         amount
             .checked_mul(10_u128.pow((decimals.origin_decimals - decimals.decimals).into()))
             .ok_or_else(|| BridgeSdkError::UnknownError("Denormalization overflow".to_string()))
@@ -1421,6 +1406,11 @@ impl OmniConnector {
             .ok_or(BridgeSdkError::ConfigError(
                 "NEAR bridge client not configured".to_string(),
             ))
+            .map_err(|e| {
+                BridgeSdkError::InvalidArgument(format!(
+                    "Failed to denormalize amount: {e}",
+                ))
+            })
     }
 
     pub fn evm_bridge_client(&self, chain_kind: ChainKind) -> Result<&EvmBridgeClient> {
